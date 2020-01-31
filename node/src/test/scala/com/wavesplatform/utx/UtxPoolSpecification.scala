@@ -485,7 +485,7 @@ class UtxPoolSpecification
 
       "is empty if utx pool was cleaned" in forAll(withValidPayments) {
         case (sender, _, utxPool, _, _) =>
-          utxPool.removeAll(utxPool.all)
+          utxPool.removeAll(utxPool.all, None)
           utxPool.pessimisticPortfolio(sender) shouldBe empty
       }
 

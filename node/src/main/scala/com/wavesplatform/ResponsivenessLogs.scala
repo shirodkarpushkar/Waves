@@ -3,20 +3,94 @@ package com.wavesplatform
 import java.io.{FileOutputStream, PrintWriter}
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ConcurrentHashMap
 
+import com.wavesplatform.account.Address
 import com.wavesplatform.common.state.ByteStr
+import com.wavesplatform.metrics.Metrics
+import com.wavesplatform.transaction.smart.InvokeScriptTransaction
+import com.wavesplatform.transaction.{AuthorizedTransaction, Transaction}
 import com.wavesplatform.utils.ScorexLogging
+import org.influxdb.dto.Point
 
 import scala.util.Try
 
 object ResponsivenessLogs extends ScorexLogging {
-  def writeEvent(height: Int, txType: Int, txId: ByteStr, eventType: String): Unit = Try(synchronized {
-    val date = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-    val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/tx-events-$date.csv", true)
-    val pw = new PrintWriter(fileStream)
-    val logLine = s"$txId,$eventType,$height,$txType,${System.currentTimeMillis()}"
-    // log.info(logLine)
-    try pw.println(logLine)
-    finally pw.close()
-  })
+  import scala.collection.JavaConverters._
+
+  private[this] val neutrinoMap = new ConcurrentHashMap[ByteStr, Long]().asScala
+
+  def writeEvent(height: Int, tx: Transaction, eventType: String, generator: Option[Address]): Unit =
+    Try(synchronized {
+      val isNeutrino = {
+        val txAddrs = tx match {
+          case is: InvokeScriptTransaction =>
+            Seq(is.sender.toAddress) ++ (is.dAppAddressOrAlias match {
+              case a: Address => Seq(a)
+              case _          => Nil
+            })
+          case a: AuthorizedTransaction => Seq(a.sender.toAddress)
+          case _                        => Nil
+        }
+
+        val neutrinoAddrs = Set(
+          "3PC9BfRwJWWiw9AREE2B3eWzCks3CYtg4yo",
+          "3PG2vMhK5CPqsCDodvLGzQ84QkoHXCJ3oNP",
+          "3P5Bfd58PPfNvBM2Hy8QfbcDqMeNtzg7KfP",
+          "3P4PCxsJqMzQBALo8zANHtBDZRRquobHQp7",
+          "3PNikM6yp4NqcSU8guxQtmR5onr2D4e8yTJ"
+        )
+
+        txAddrs.map(_.stringRepr).exists(neutrinoAddrs)
+      }
+
+      val isWhitelistMiner = {
+        val whitelistAddrs = Set(
+          "3P2HNUd5VUPLMQkJmctTPEeeHumiPN2GkTb",
+          "3PA1KvFfq9VuJjg45p2ytGgaNjrgnLSgf4r",
+          "3P9DEDP5VbyXQyKtXDUt2crRPn5B7gs6ujc",
+          "3P23fi1qfVw6RVDn4CH2a5nNouEtWNQ4THs",
+          "3PEDjPSkKrMtaaJJLGfL849Fg39TSZ7WGzY",
+          "3P5dg6PtSAQmdH1qCGKJWu7bkzRG27mny5i",
+          "3PNDoRLsFoPtW1P3nvVHAt7V6hfpyQ8Az9w"
+        )
+        generator.exists(addr => whitelistAddrs(addr.stringRepr))
+      }
+
+      if (isNeutrino) {
+        if (eventType == "received") neutrinoMap(tx.id()) = System.nanoTime()
+
+        if (eventType == "mined") {
+          neutrinoMap.get(tx.id()).foreach { start =>
+            import scala.concurrent.duration._
+            val delta = (System.nanoTime() - start).nanos.toMillis
+            val point = Point
+              .measurement("neutrino")
+              .tag("event", "mined")
+              .addField("type", tx.builder.typeId)
+              .addField("height", height)
+              .addField("time-to-mine", delta)
+              .addField("whitelist", isWhitelistMiner)
+            log.trace(s"Neutrino mining time for ${tx.id()}: $delta ms")
+            Metrics.write(point)
+          }
+        } else {
+          val point = Point
+            .measurement("neutrino")
+            .tag("event", "received")
+            .addField("type", tx.builder.typeId)
+            .addField("height", height)
+            .addField("whitelist", isWhitelistMiner)
+          Metrics.write(point)
+        }
+      }
+
+      val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+      val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/tx-events-$date.csv", true)
+      val pw         = new PrintWriter(fileStream)
+      val logLine    = s"${tx.id()},$eventType,$height,${tx.builder.typeId},${System.currentTimeMillis()}"
+      // log.info(logLine)
+      try pw.println(logLine)
+      finally pw.close()
+    })
 }

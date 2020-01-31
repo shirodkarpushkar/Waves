@@ -26,7 +26,7 @@ object MicroblockAppender extends ScorexLogging {
     Task(metrics.microblockProcessingTimeStats.measureSuccessful {
       blockchainUpdater
         .processMicroBlock(microBlock, verify)
-        .map(_ => utxStorage.removeAll(microBlock.transactionData))
+        .map(_ => utxStorage.removeAll(microBlock.transactionData, Some(microBlock.sender)))
     }).executeOn(scheduler)
   }
 

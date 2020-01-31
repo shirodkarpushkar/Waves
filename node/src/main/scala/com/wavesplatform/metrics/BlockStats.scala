@@ -138,7 +138,7 @@ object BlockStats {
     measurement(Type.Block)
       .tag("id", id(b.uniqueId))
       .tag("source", source.name)
-      .addField("whitelist", isWhitelistMiner)
+      .tag("whitelist", isWhitelistMiner.toString)
   }
 
   private def micro(m: MicroBlock): Point.Builder =

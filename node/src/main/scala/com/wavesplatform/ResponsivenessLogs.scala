@@ -60,29 +60,23 @@ object ResponsivenessLogs extends ScorexLogging {
       if (isNeutrino) {
         if (eventType == "received") neutrinoMap(tx.id()) = System.nanoTime()
 
-        if (eventType == "mined") {
-          neutrinoMap.get(tx.id()).foreach { start =>
+        val basePoint = Point
+          .measurement("neutrino")
+          .tag("event", eventType)
+          .addField("type", tx.builder.typeId)
+          .addField("height", height)
+          .addField("whitelist", isWhitelistMiner)
+
+        val point = if (eventType == "mined") {
+          neutrinoMap.get(tx.id()).fold(basePoint) { start =>
             import scala.concurrent.duration._
             val delta = (System.nanoTime() - start).nanos.toMillis
-            val point = Point
-              .measurement("neutrino")
-              .tag("event", "mined")
-              .addField("type", tx.builder.typeId)
-              .addField("height", height)
-              .addField("time-to-mine", delta)
-              .addField("whitelist", isWhitelistMiner)
             log.trace(s"Neutrino mining time for ${tx.id()}: $delta ms")
-            Metrics.write(point)
+            basePoint.addField("time-to-mine", delta)
           }
-        } else {
-          val point = Point
-            .measurement("neutrino")
-            .tag("event", "received")
-            .addField("type", tx.builder.typeId)
-            .addField("height", height)
-            .addField("whitelist", isWhitelistMiner)
-          Metrics.write(point)
-        }
+        } else basePoint
+
+        Metrics.write(point)
       }
 
       val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)

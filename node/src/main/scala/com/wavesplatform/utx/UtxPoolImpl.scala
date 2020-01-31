@@ -161,8 +161,8 @@ class UtxPoolImpl(
     tracedIsNew
   }
 
-  override def removeAll(txs: Traversable[Transaction], generator: Option[Address]): Unit = txs.foreach { tx =>
-    if (transactions.containsKey(tx.id())) ResponsivenessLogs.writeEvent(blockchain.height, tx, "mined", generator)
+  override def removeAll(txs: Traversable[Transaction]): Unit = txs.foreach { tx =>
+    if (transactions.containsKey(tx.id())) ResponsivenessLogs.writeEvent(blockchain.height, tx, "mined")
     remove(tx.id())
   }
 
@@ -179,7 +179,7 @@ class UtxPoolImpl(
 
     if (!verify || isNew.resultE.isRight)
       transactions.computeIfAbsent(tx.id(), { _ =>
-        ResponsivenessLogs.writeEvent(blockchain.height, tx, "received", None)
+        ResponsivenessLogs.writeEvent(blockchain.height, tx, "received")
         PoolMetrics.addTransaction(tx)
         tx
       })
@@ -229,7 +229,7 @@ class UtxPoolImpl(
                 r // don't run any checks here to speed up mining
               else if (TxCheck.isExpired(tx)) {
                 log.debug(s"Transaction ${tx.id()} expired")
-                ResponsivenessLogs.writeEvent(blockchain.height, tx, "expired", None)
+                ResponsivenessLogs.writeEvent(blockchain.height, tx, "expired")
                 remove(tx.id())
                 r.copy(iterations = r.iterations + 1)
               } else {

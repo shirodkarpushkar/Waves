@@ -20,7 +20,7 @@ object ResponsivenessLogs extends ScorexLogging {
 
   private[this] val neutrinoMap = new ConcurrentHashMap[ByteStr, Long]().asScala
 
-  def writeEvent(height: Int, tx: Transaction, eventType: String, generator: Option[Address]): Unit =
+  def writeEvent(height: Int, tx: Transaction, eventType: String): Unit =
     Try(synchronized {
       val isNeutrino = {
         val txAddrs = tx match {

@@ -44,19 +44,6 @@ object ResponsivenessLogs extends ScorexLogging {
         txAddrs.map(_.stringRepr).exists(neutrinoAddrs)
       }
 
-      val isWhitelistMiner = {
-        val whitelistAddrs = Set(
-          "3P2HNUd5VUPLMQkJmctTPEeeHumiPN2GkTb",
-          "3PA1KvFfq9VuJjg45p2ytGgaNjrgnLSgf4r",
-          "3P9DEDP5VbyXQyKtXDUt2crRPn5B7gs6ujc",
-          "3P23fi1qfVw6RVDn4CH2a5nNouEtWNQ4THs",
-          "3PEDjPSkKrMtaaJJLGfL849Fg39TSZ7WGzY",
-          "3P5dg6PtSAQmdH1qCGKJWu7bkzRG27mny5i",
-          "3PNDoRLsFoPtW1P3nvVHAt7V6hfpyQ8Az9w"
-        )
-        generator.exists(addr => whitelistAddrs(addr.stringRepr))
-      }
-
       if (isNeutrino) {
         if (eventType == "received") neutrinoMap(tx.id()) = System.nanoTime()
 
@@ -65,7 +52,6 @@ object ResponsivenessLogs extends ScorexLogging {
           .tag("event", eventType)
           .addField("type", tx.builder.typeId)
           .addField("height", height)
-          .addField("whitelist", isWhitelistMiner)
 
         val point = if (eventType == "mined") {
           neutrinoMap.get(tx.id()).fold(basePoint) { start =>

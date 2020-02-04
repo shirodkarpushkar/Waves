@@ -264,6 +264,7 @@ class UtxPoolImpl(
                         )
                       }
                     case Left(error) =>
+                      ResponsivenessLogs.writeEvent(blockchain.height, tx, "invalidated")
                       log.debug(s"Transaction ${tx.id()} removed due to ${extractErrorMessage(error)}")
                       logValidationError(tx, error)
                       remove(tx.id())
@@ -370,6 +371,7 @@ class UtxPoolImpl(
     private[this] val SampleInterval: Duration = Duration.of(500, ChronoUnit.MILLIS)
 
     private[this] val sizeStats  = Kamon.rangeSampler("utx.pool-size", MeasurementUnit.none, SampleInterval)
+    private[this] val neutrinoSizeStats  = Kamon.rangeSampler("neutrino.utx-pool-size", MeasurementUnit.none, SampleInterval)
     private[this] val bytesStats = Kamon.rangeSampler("utx.pool-bytes", MeasurementUnit.information.bytes, SampleInterval)
 
     val putTimeStats    = Kamon.timer("utx.put-if-new")
@@ -385,11 +387,13 @@ class UtxPoolImpl(
     def addTransaction(tx: Transaction): Unit = {
       sizeStats.increment()
       bytesStats.increment(tx.bytes().length)
+      if (ResponsivenessLogs.isNeutrino(tx)) neutrinoSizeStats.increment()
     }
 
     def removeTransaction(tx: Transaction): Unit = {
       sizeStats.decrement()
       bytesStats.decrement(tx.bytes().length)
+      if (ResponsivenessLogs.isNeutrino(tx)) neutrinoSizeStats.decrement()
     }
   }
 }

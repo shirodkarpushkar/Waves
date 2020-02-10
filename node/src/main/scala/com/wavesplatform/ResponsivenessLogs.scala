@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 
 import com.wavesplatform.account.Address
 import com.wavesplatform.common.state.ByteStr
+import com.wavesplatform.lang.ValidationError
 import com.wavesplatform.metrics.Metrics
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction
 import com.wavesplatform.transaction.{AuthorizedTransaction, Transaction}
@@ -42,8 +43,14 @@ object ResponsivenessLogs extends ScorexLogging {
     txAddrs.map(_.stringRepr).exists(neutrinoAddrs)
   }
 
-  def writeEvent(height: Int, tx: Transaction, eventType: String, reason: Option[String] = None): Unit =
+  def writeEvent(height: Int, tx: Transaction, eventType: String, reason: Option[ValidationError] = None): Unit =
     Try(synchronized {
+      val reasonStr = reason match {
+        case Some(value)                 => value.getClass.getSimpleName
+        case _ if eventType == "expired" => "Expired"
+        case _                           => "Unknown"
+      }
+
       if (isNeutrino(tx)) {
         val now = System.nanoTime()
 
@@ -81,12 +88,6 @@ object ResponsivenessLogs extends ScorexLogging {
 
               val delta = (now - received).nanos.toMillis
               log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
-
-              val reasonStr = reason match {
-                case Some(value) => value
-                case _ if eventType == "expired" => "Expired"
-                case _ => "Unknown"
-              }
               Metrics.write(basePoint.tag("reason", reasonStr).addField("time-to-fail", delta))
           }
         }
@@ -101,12 +102,28 @@ object ResponsivenessLogs extends ScorexLogging {
         }
       }
 
-      val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-      val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/tx-events-$date.csv", true)
-      val pw         = new PrintWriter(fileStream)
-      val logLine    = s"${tx.id()},$eventType,$height,${tx.builder.typeId},${System.currentTimeMillis()}"
-      // log.info(logLine)
-      try pw.println(logLine)
-      finally pw.close()
+      def writePlain(): Unit = {
+        val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/tx-events-$date.csv", true)
+        val pw         = new PrintWriter(fileStream)
+        val logLine    = s"${tx.id()},$eventType,$height,${tx.builder.typeId},${System.currentTimeMillis()}"
+        // log.info(logLine)
+        try pw.println(logLine)
+        finally pw.close()
+      }
+
+      def writeNeutrino(): Unit = {
+        val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/neutrino-events-$date.csv", true)
+        val pw         = new PrintWriter(fileStream)
+        val logLine = s"${tx.id()};$eventType;$height;${tx.builder.typeId};${System
+          .currentTimeMillis()};$reasonStr;${reason.fold("")(_.toString)};${if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""}"
+        // log.info(logLine)
+        try pw.println(logLine)
+        finally pw.close()
+      }
+
+      if (isNeutrino(tx)) writeNeutrino()
+      writePlain()
     })
 }

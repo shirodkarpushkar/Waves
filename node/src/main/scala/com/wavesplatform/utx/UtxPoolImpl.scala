@@ -312,9 +312,9 @@ class UtxPoolImpl(
   traceLogger.trace("Validation trace reporting is enabled")
 
   @scala.annotation.tailrec
-  private def extractErrorClass(error: ValidationError): String = error match {
+  private def extractErrorClass(error: ValidationError): ValidationError = error match {
     case TransactionValidationError(cause, _)               => extractErrorClass(cause)
-    case other                                              => other.getClass.getSimpleName
+    case other                                              => other
   }
 
   @scala.annotation.tailrec

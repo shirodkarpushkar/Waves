@@ -264,7 +264,7 @@ class UtxPoolImpl(
                         )
                       }
                     case Left(error) =>
-                      ResponsivenessLogs.writeEvent(blockchain.height, tx, "invalidated")
+                      ResponsivenessLogs.writeEvent(blockchain.height, tx, "invalidated", Some(extractErrorClass(error)))
                       log.debug(s"Transaction ${tx.id()} removed due to ${extractErrorMessage(error)}")
                       logValidationError(tx, error)
                       remove(tx.id())
@@ -310,6 +310,12 @@ class UtxPoolImpl(
 
   private[this] val traceLogger = LoggerFacade(LoggerFactory.getLogger(this.getClass.getCanonicalName + ".trace"))
   traceLogger.trace("Validation trace reporting is enabled")
+
+  @scala.annotation.tailrec
+  private def extractErrorClass(error: ValidationError): String = error match {
+    case TransactionValidationError(cause, _)               => extractErrorClass(cause)
+    case other                                              => other.getClass.getSimpleName
+  }
 
   @scala.annotation.tailrec
   private def extractErrorMessage(error: ValidationError): String = error match {

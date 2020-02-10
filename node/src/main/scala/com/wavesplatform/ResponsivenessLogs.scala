@@ -42,7 +42,7 @@ object ResponsivenessLogs extends ScorexLogging {
     txAddrs.map(_.stringRepr).exists(neutrinoAddrs)
   }
 
-  def writeEvent(height: Int, tx: Transaction, eventType: String): Unit =
+  def writeEvent(height: Int, tx: Transaction, eventType: String, reason: Option[String] = None): Unit =
     Try(synchronized {
       if (isNeutrino(tx)) {
         val now = System.nanoTime()
@@ -82,7 +82,12 @@ object ResponsivenessLogs extends ScorexLogging {
               val delta = (now - received).nanos.toMillis
               log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
 
-              Metrics.write(basePoint.addField("time-to-fail", delta))
+              val reasonStr = reason match {
+                case Some(value) => value
+                case _ if eventType == "expired" => "Expired"
+                case _ => "Unknown"
+              }
+              Metrics.write(basePoint.tag("reason", reasonStr).addField("time-to-fail", delta))
           }
         }
 

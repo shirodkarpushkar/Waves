@@ -58,6 +58,7 @@ object ResponsivenessLogs extends ScorexLogging {
 
         val basePoint = Point
           .measurement("neutrino")
+          .tag("id", tx.id().toString)
           .tag("event", eventType)
           .addField("type", tx.builder.typeId)
           .addField("height", height)

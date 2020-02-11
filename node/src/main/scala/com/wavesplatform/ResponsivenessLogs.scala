@@ -18,11 +18,17 @@ import scala.concurrent.duration.Duration
 import scala.util.Try
 
 object ResponsivenessLogs extends ScorexLogging {
-  private[this] case class MetricSnapshot(point: Point.Builder) {
+  private[this] case class MetricSnapshot(point: Point.Builder = null) {
     val nano   = System.nanoTime()
     val millis = System.currentTimeMillis()
   }
-  private[this] case class TxState(received: Long, firstMined: Option[Long], lastMined: Option[MetricSnapshot], miningAttempt: Int, height: Int)
+  private[this] case class TxState(
+      received: Long,
+      firstMined: Option[MetricSnapshot],
+      lastMined: Option[MetricSnapshot],
+      miningAttempt: Int,
+      height: Int
+  )
   private[this] val neutrinoMap = mutable.AnyRefMap.empty[ByteStr, TxState]
 
   def isNeutrino(tx: Transaction): Boolean = {
@@ -81,19 +87,26 @@ object ResponsivenessLogs extends ScorexLogging {
               val delta = toMillis(now - received)
               log.trace(s"Neutrino mining time for ${tx.id()} (attempt #$attempt): $delta ms")
 
-              if (attempt == 0) Metrics.write(basePoint.addField("time-to-first-mine", delta))
-              neutrinoMap(tx.id()) =
-                TxState(received, firstMined.orElse(Some(now)), Some(MetricSnapshot(basePoint.addField("time-to-mine", delta))), attempt, height)
+              val snapshot = MetricSnapshot(basePoint.addField("time-to-mine", delta))
+              neutrinoMap(tx.id()) = TxState(
+                received,
+                firstMined.orElse(Some(snapshot)),
+                Some(snapshot),
+                attempt,
+                height
+              )
           }
         } else if (eventType == "expired" || eventType == "invalidated") {
           neutrinoMap.remove(tx.id()).foreach {
             case TxState(received, firstMined, _, _, _) =>
-              val delta   = toMillis(now - received)
-              val ffDelta = toMillis(firstMined.fold(0L)(now - _))
+              val delta      = toMillis(now - received)
+              val ffDelta    = toMillis(firstMined.fold(0L)(ms => now - ms.nano))
+              val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
               log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
               Metrics.write(
                 basePoint
                   .tag("reason", reasonStr)
+                  .addField("time-to-first-mine", firstDelta)
                   .addField("time-to-fail", delta)
                   .addField("time-to-finish-after-first-mining", ffDelta)
               )
@@ -101,9 +114,13 @@ object ResponsivenessLogs extends ScorexLogging {
         }
 
         neutrinoMap.toVector.collect {
-          case (txId, TxState(_, firstMined, Some(mined), _, h)) if (h + 5) <= height =>
-            val ffDelta = toMillis(firstMined.fold(0L)(mined.nano - _))
-            Metrics.write(mined.point.addField("time-to-finish-after-first-mining", ffDelta), mined.millis)
+          case (txId, TxState(received, firstMined, Some(mined), _, h)) if (h + 5) <= height =>
+            val ffDelta    = toMillis(firstMined.fold(0L)(ms => mined.nano - ms.nano))
+            val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
+            val finalPoint = mined.point
+              .addField("time-to-first-mine", firstDelta)
+              .addField("time-to-finish-after-first-mining", ffDelta)
+            Metrics.write(finalPoint, mined.millis)
             neutrinoMap -= txId
 
           case (txId, TxState(_, _, _, _, h)) if (h + 200) <= height =>

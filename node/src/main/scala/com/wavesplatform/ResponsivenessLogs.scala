@@ -14,11 +14,15 @@ import com.wavesplatform.utils.ScorexLogging
 import org.influxdb.dto.Point
 
 import scala.collection.mutable
+import scala.concurrent.duration.Duration
 import scala.util.Try
 
 object ResponsivenessLogs extends ScorexLogging {
-
-  private[this] case class TxState(received: Long, lastMined: Option[Point.Builder], miningAttempt: Int, height: Int)
+  private[this] case class MetricSnapshot(point: Point.Builder) {
+    val nano   = System.nanoTime()
+    val millis = System.currentTimeMillis()
+  }
+  private[this] case class TxState(received: Long, firstMined: Option[Long], lastMined: Option[MetricSnapshot], miningAttempt: Int, height: Int)
   private[this] val neutrinoMap = mutable.AnyRefMap.empty[ByteStr, TxState]
 
   def isNeutrino(tx: Transaction): Boolean = {
@@ -52,12 +56,13 @@ object ResponsivenessLogs extends ScorexLogging {
       }
 
       if (isNeutrino(tx)) {
-        val now = System.nanoTime()
+        def toMillis(ns: Long) = Duration.fromNanos(ns).toMillis
+        val now                = System.nanoTime()
 
         if (eventType == "received")
           neutrinoMap(tx.id()) = neutrinoMap.get(tx.id()) match {
             case None =>
-              TxState(now, None, 0, height)
+              TxState(now, None, None, 0, height)
 
             case Some(state) =>
               state.copy(lastMined = None, miningAttempt = if (state.lastMined.nonEmpty) state.miningAttempt + 1 else state.miningAttempt)
@@ -72,32 +77,36 @@ object ResponsivenessLogs extends ScorexLogging {
 
         if (eventType == "mined") {
           neutrinoMap.get(tx.id()).foreach {
-            case TxState(received, _, attempt, _) =>
-              import scala.concurrent.duration._
-
-              val delta = (now - received).nanos.toMillis
+            case TxState(received, firstMined, _, attempt, _) =>
+              val delta = toMillis(now - received)
               log.trace(s"Neutrino mining time for ${tx.id()} (attempt #$attempt): $delta ms")
 
               if (attempt == 0) Metrics.write(basePoint.addField("time-to-first-mine", delta))
-              neutrinoMap(tx.id()) = TxState(received, Some(basePoint.addField("time-to-mine", delta)), attempt, height)
+              neutrinoMap(tx.id()) =
+                TxState(received, firstMined.orElse(Some(now)), Some(MetricSnapshot(basePoint.addField("time-to-mine", delta))), attempt, height)
           }
         } else if (eventType == "expired" || eventType == "invalidated") {
           neutrinoMap.remove(tx.id()).foreach {
-            case TxState(received, _, _, _) =>
-              import scala.concurrent.duration._
-
-              val delta = (now - received).nanos.toMillis
+            case TxState(received, firstMined, _, _, _) =>
+              val delta   = toMillis(now - received)
+              val ffDelta = toMillis(firstMined.fold(0L)(now - _))
               log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
-              Metrics.write(basePoint.tag("reason", reasonStr).addField("time-to-fail", delta))
+              Metrics.write(
+                basePoint
+                  .tag("reason", reasonStr)
+                  .addField("time-to-fail", delta)
+                  .addField("time-to-finish-after-first-mining", ffDelta)
+              )
           }
         }
 
         neutrinoMap.toVector.collect {
-          case (txId, TxState(_, Some(mined), _, h)) if (h + 5) <= height =>
-            Metrics.write(mined)
+          case (txId, TxState(_, firstMined, Some(mined), _, h)) if (h + 5) <= height =>
+            val ffDelta = toMillis(firstMined.fold(0L)(mined.nano - _))
+            Metrics.write(mined.point.addField("time-to-finish-after-first-mining", ffDelta), mined.millis)
             neutrinoMap -= txId
 
-          case (txId, TxState(_, _, _, h)) if (h + 200) <= height =>
+          case (txId, TxState(_, _, _, _, h)) if (h + 200) <= height =>
             neutrinoMap -= txId
         }
       }
@@ -117,7 +126,8 @@ object ResponsivenessLogs extends ScorexLogging {
         val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/neutrino-events-$date.csv", true)
         val pw         = new PrintWriter(fileStream)
         val logLine = s"${tx.id()};$eventType;$height;${tx.builder.typeId};${System
-          .currentTimeMillis()};$reasonStr;${reason.fold("")(_.toString)};${if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""}"
+          .currentTimeMillis()};$reasonStr;${reason
+          .fold("")(_.toString)};${if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""}"
         // log.info(logLine)
         try pw.println(logLine)
         finally pw.close()

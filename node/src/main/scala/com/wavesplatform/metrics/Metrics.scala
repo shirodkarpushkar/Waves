@@ -81,9 +81,8 @@ object Metrics extends ScorexLogging {
       db.foreach(_.close())
     }.runAsyncLogErr
 
-  def write(b: Point.Builder): Unit = {
+  def write(b: Point.Builder, ts: Long = time.getTimestamp()): Unit = {
     db.foreach { db =>
-      val ts = time.getTimestamp()
       Task {
         try {
           db.write(

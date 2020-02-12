@@ -9,7 +9,7 @@ import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.lang.ValidationError
 import com.wavesplatform.metrics.Metrics
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction
-import com.wavesplatform.transaction.{AuthorizedTransaction, Transaction}
+import com.wavesplatform.transaction.{AuthorizedTransaction, Transaction, TxValidationError}
 import com.wavesplatform.utils.ScorexLogging
 import org.influxdb.dto.Point
 
@@ -142,9 +142,14 @@ object ResponsivenessLogs extends ScorexLogging {
         val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/neutrino-events-$date.csv", true)
         val pw         = new PrintWriter(fileStream)
+        val reasonEscaped = reason match {
+          case Some(see: TxValidationError.ScriptExecutionError)        => "ScriptExecutionError"
+          case Some(_: TxValidationError.TransactionNotAllowedByScript) => "TransactionNotAllowedByScript"
+          case Some(err)                                                => err.toString.replaceAll("\\r", "\\\\r").replaceAll("\\n", "\\\\n").replaceAll(";", "&semi;")
+          case None                                                     => ""
+        }
         val logLine = s"${tx.id()};$eventType;$height;${tx.builder.typeId};${System
-          .currentTimeMillis()};$reasonStr;${reason
-          .fold("")(_.toString)};${if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""}"
+          .currentTimeMillis()};$reasonStr;$reasonEscaped;${if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""}"
         // log.info(logLine)
         try pw.println(logLine)
         finally pw.close()

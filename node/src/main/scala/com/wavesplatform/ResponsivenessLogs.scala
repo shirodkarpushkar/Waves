@@ -55,7 +55,7 @@ object ResponsivenessLogs extends ScorexLogging {
 
   def writeEvent(height: Int, tx: Transaction, eventType: String, reason: Option[ValidationError] = None): Unit =
     Try(synchronized {
-      val reasonStr = reason match {
+      val reasonClass = reason match {
         case Some(value)                 => value.getClass.getSimpleName
         case _ if eventType == "expired" => "Expired"
         case _                           => "Unknown"
@@ -105,7 +105,7 @@ object ResponsivenessLogs extends ScorexLogging {
               log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
               Metrics.write(
                 basePoint
-                  .tag("reason", reasonStr)
+                  .tag("reason", reasonClass)
                   .addField("time-to-first-mine", firstDelta)
                   .addField("time-to-fail", delta)
                   .addField("time-to-finish-after-first-mining", ffDelta)
@@ -128,34 +128,26 @@ object ResponsivenessLogs extends ScorexLogging {
         }
       }
 
-      def writePlain(): Unit = {
+      def writeCsvLog(prefix: String): Unit = {
         val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/tx-events-$date.csv", true)
-        val pw         = new PrintWriter(fileStream)
-        val logLine    = s"${tx.id()},$eventType,$height,${tx.builder.typeId},${System.currentTimeMillis()}"
-        // log.info(logLine)
-        try pw.println(logLine)
-        finally pw.close()
-      }
-
-      def writeNeutrino(): Unit = {
-        val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/neutrino-events-$date.csv", true)
+        val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/$prefix-events-$date.csv", true)
         val pw         = new PrintWriter(fileStream)
         val reasonEscaped = reason match {
           case Some(see: TxValidationError.ScriptExecutionError)        => "ScriptExecutionError"
           case Some(_: TxValidationError.TransactionNotAllowedByScript) => "TransactionNotAllowedByScript"
-          case Some(err)                                                => err.toString.replaceAll("\\r", "\\\\r").replaceAll("\\n", "\\\\n").replaceAll(";", "&semi;")
+          case Some(err)                                                => err.toString.replaceAll("\\r", "\\\\r").replaceAll("\\n", "\\\\n")
           case None                                                     => ""
         }
-        val logLine = s"${tx.id()};$eventType;$height;${tx.builder.typeId};${System
-          .currentTimeMillis()};$reasonStr;$reasonEscaped;${if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""}"
+        val txType    = tx.builder.typeId
+        val timestamp = System.currentTimeMillis()
+        val txJson    = if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""
+        val logLine   = s"${tx.id()};$eventType;$height;$txType;$timestamp;$reasonClass;$reasonEscaped;$txJson"
         // log.info(logLine)
         try pw.println(logLine)
         finally pw.close()
       }
 
-      if (isNeutrino(tx)) writeNeutrino()
-      writePlain()
+      if (isNeutrino(tx)) writeCsvLog("neutrino")
+      writeCsvLog("tx")
     })
 }

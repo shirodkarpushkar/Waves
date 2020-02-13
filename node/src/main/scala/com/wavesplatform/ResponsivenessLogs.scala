@@ -131,13 +131,15 @@ object ResponsivenessLogs extends ScorexLogging {
       }
 
       def writeCsvLog(prefix: String): Unit = {
+        def escape(s: String): String = s.replaceAll("\\r", "\\\\r").replaceAll("\\n", "\\\\n")
+
         val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/$prefix-events-$date.csv", true)
         val pw         = new PrintWriter(fileStream)
         val reasonEscaped = reason match {
-          case Some(see: TxValidationError.ScriptExecutionError)        => "ScriptExecutionError"
+          case Some(see: TxValidationError.ScriptExecutionError)        => s"ScriptExecutionError(${escape(see.error)})"
           case Some(_: TxValidationError.TransactionNotAllowedByScript) => "TransactionNotAllowedByScript"
-          case Some(err)                                                => err.toString.replaceAll("\\r", "\\\\r").replaceAll("\\n", "\\\\n")
+          case Some(err)                                                => escape(err.toString)
           case None                                                     => ""
         }
         val txType    = tx.builder.typeId

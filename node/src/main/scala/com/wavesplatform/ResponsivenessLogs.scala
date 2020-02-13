@@ -17,11 +17,12 @@ import scala.collection.mutable
 import scala.concurrent.duration.Duration
 import scala.util.Try
 
-object ResponsivenessLogs extends ScorexLogging {
-  private[this] case class MetricSnapshot(point: Point.Builder = null) {
-    val nano   = System.nanoTime()
+private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends ScorexLogging {
+  //noinspection ScalaStyle
+  private[this] case class MetricSnapshot(point: Point.Builder = null, nano: Long = System.nanoTime()) {
     val millis = System.currentTimeMillis()
   }
+
   private[this] case class TxState(
       received: Long,
       firstMined: Option[MetricSnapshot],
@@ -29,29 +30,7 @@ object ResponsivenessLogs extends ScorexLogging {
       miningAttempt: Int,
       height: Int
   )
-  private[this] val neutrinoMap = mutable.AnyRefMap.empty[ByteStr, TxState]
-
-  def isNeutrino(tx: Transaction): Boolean = {
-    val txAddrs = tx match {
-      case is: InvokeScriptTransaction =>
-        Seq(is.sender.toAddress) ++ (is.dAppAddressOrAlias match {
-          case a: Address => Seq(a)
-          case _          => Nil
-        })
-      case a: AuthorizedTransaction => Seq(a.sender.toAddress)
-      case _                        => Nil
-    }
-
-    val neutrinoAddrs = Set(
-      "3PC9BfRwJWWiw9AREE2B3eWzCks3CYtg4yo",
-      "3PG2vMhK5CPqsCDodvLGzQ84QkoHXCJ3oNP",
-      "3P5Bfd58PPfNvBM2Hy8QfbcDqMeNtzg7KfP",
-      "3P4PCxsJqMzQBALo8zANHtBDZRRquobHQp7",
-      "3PNikM6yp4NqcSU8guxQtmR5onr2D4e8yTJ"
-    )
-
-    txAddrs.map(_.stringRepr).exists(neutrinoAddrs)
-  }
+  private[this] val stateMap = mutable.AnyRefMap.empty[ByteStr, TxState]
 
   def writeEvent(height: Int, tx: Transaction, eventType: String, reason: Option[ValidationError] = None): Unit =
     Try(synchronized {
@@ -61,73 +40,69 @@ object ResponsivenessLogs extends ScorexLogging {
         case _                           => "Unknown"
       }
 
-      if (isNeutrino(tx)) {
-        def toMillis(ns: Long) = Duration.fromNanos(ns).toMillis
-        val now                = System.nanoTime()
+      def toMillis(ns: Long) = Duration.fromNanos(ns).toMillis
+      val now                = System.nanoTime()
 
-        if (eventType == "received")
-          neutrinoMap(tx.id()) = neutrinoMap.get(tx.id()) match {
-            case None =>
-              TxState(now, None, None, 0, height)
+      if (eventType == "received")
+        stateMap(tx.id()) = stateMap.get(tx.id()) match {
+          case None =>
+            TxState(now, None, None, 0, height)
 
-            case Some(state) =>
-              state.copy(lastMined = None, miningAttempt = if (state.lastMined.nonEmpty) state.miningAttempt + 1 else state.miningAttempt)
-          }
-
-        val basePoint = Point
-          .measurement("neutrino")
-          .tag("id", tx.id().toString)
-          .tag("event", eventType)
-          .addField("type", tx.builder.typeId)
-          .addField("height", height)
-
-        if (eventType == "mined") {
-          neutrinoMap.get(tx.id()).foreach {
-            case TxState(received, firstMined, _, attempt, _) =>
-              val delta = toMillis(now - received)
-              log.trace(s"Neutrino mining time for ${tx.id()} (attempt #$attempt): $delta ms")
-
-              val snapshot = new MetricSnapshot(basePoint.addField("time-to-mine", delta)) {
-                override val nano: Long = now
-              }
-              neutrinoMap(tx.id()) = TxState(
-                received,
-                firstMined.orElse(Some(snapshot)),
-                Some(snapshot),
-                attempt,
-                height
-              )
-          }
-        } else if (eventType == "expired" || (eventType == "invalidated" && reasonClass != "AlreadyInTheState")) {
-          neutrinoMap.remove(tx.id()).foreach {
-            case TxState(received, firstMined, _, _, _) =>
-              val delta      = toMillis(now - received)
-              val ffDelta    = toMillis(firstMined.fold(0L)(ms => now - ms.nano))
-              val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
-              log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
-              Metrics.write(
-                basePoint
-                  .tag("reason", reasonClass)
-                  .addField("time-to-first-mine", firstDelta)
-                  .addField("time-to-fail", delta)
-                  .addField("time-to-finish-after-first-mining", ffDelta)
-              )
-          }
+          case Some(state) =>
+            state.copy(lastMined = None, miningAttempt = if (state.lastMined.nonEmpty) state.miningAttempt + 1 else state.miningAttempt)
         }
 
-        neutrinoMap.toVector.collect {
-          case (txId, TxState(received, firstMined, Some(mined), _, h)) if (h + 5) <= height =>
-            val ffDelta    = toMillis(firstMined.fold(0L)(ms => mined.nano - ms.nano))
+      val basePoint = Point
+        .measurement(metricName)
+        .tag("id", tx.id().toString)
+        .tag("event", eventType)
+        .addField("type", tx.builder.typeId)
+        .addField("height", height)
+
+      if (eventType == "mined") {
+        stateMap.get(tx.id()).foreach {
+          case TxState(received, firstMined, _, attempt, _) =>
+            val delta = toMillis(now - received)
+            log.trace(s"Neutrino mining time for ${tx.id()} (attempt #$attempt): $delta ms")
+
+            val snapshot = MetricSnapshot(basePoint.addField("time-to-mine", delta), now)
+            stateMap(tx.id()) = TxState(
+              received,
+              firstMined.orElse(Some(snapshot)),
+              Some(snapshot),
+              attempt,
+              height
+            )
+        }
+      } else if (eventType == "expired" || (eventType == "invalidated" && reasonClass != "AlreadyInTheState")) {
+        stateMap.remove(tx.id()).foreach {
+          case TxState(received, firstMined, _, _, _) =>
+            val delta      = toMillis(now - received)
+            val ffDelta    = toMillis(firstMined.fold(0L)(ms => now - ms.nano))
             val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
-            val finalPoint = mined.point
-              .addField("time-to-first-mine", firstDelta)
-              .addField("time-to-finish-after-first-mining", ffDelta)
-            Metrics.write(finalPoint, mined.millis)
-            neutrinoMap -= txId
-
-          case (txId, TxState(_, _, _, _, h)) if (h + 200) <= height =>
-            neutrinoMap -= txId
+            log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
+            Metrics.write(
+              basePoint
+                .tag("reason", reasonClass)
+                .addField("time-to-first-mine", firstDelta)
+                .addField("time-to-fail", delta)
+                .addField("time-to-finish-after-first-mining", ffDelta)
+            )
         }
+      }
+
+      stateMap.toVector.collect {
+        case (txId, TxState(received, firstMined, Some(mined), _, h)) if (h + 5) <= height =>
+          val ffDelta    = toMillis(firstMined.fold(0L)(ms => mined.nano - ms.nano))
+          val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
+          val finalPoint = mined.point
+            .addField("time-to-first-mine", firstDelta)
+            .addField("time-to-finish-after-first-mining", ffDelta)
+          Metrics.write(finalPoint, mined.millis)
+          stateMap -= txId
+
+        case (txId, TxState(_, _, _, _, h)) if (h + 200) <= height =>
+          stateMap -= txId
       }
 
       def writeCsvLog(prefix: String): Unit = {
@@ -151,7 +126,38 @@ object ResponsivenessLogs extends ScorexLogging {
         finally pw.close()
       }
 
-      if (isNeutrino(tx)) writeCsvLog("neutrino")
-      writeCsvLog("tx")
+      writeCsvLog(csvPrefix)
     })
+}
+
+object ResponsivenessLogs {
+  private[this] val neutrino = new ResponsivenessLogs("neutrino", "neutrino")
+  private[this] val ordinary = new ResponsivenessLogs("tx", "blockchain-responsiveness")
+
+  def isNeutrino(tx: Transaction): Boolean = {
+    val txAddrs: Set[Address] = tx match {
+      case is: InvokeScriptTransaction =>
+        Set(is.sender.toAddress) ++ (is.dAppAddressOrAlias match {
+          case a: Address => Set(a)
+          case _          => Set.empty
+        })
+      case a: AuthorizedTransaction => Set(a.sender.toAddress)
+      case _                        => Set.empty
+    }
+
+    val neutrinoAddrs = Set(
+      "3PC9BfRwJWWiw9AREE2B3eWzCks3CYtg4yo",
+      "3PG2vMhK5CPqsCDodvLGzQ84QkoHXCJ3oNP",
+      "3P5Bfd58PPfNvBM2Hy8QfbcDqMeNtzg7KfP",
+      "3P4PCxsJqMzQBALo8zANHtBDZRRquobHQp7",
+      "3PNikM6yp4NqcSU8guxQtmR5onr2D4e8yTJ"
+    )
+
+    txAddrs.map(_.stringRepr).exists(neutrinoAddrs)
+  }
+
+  def writeEvent(height: Int, tx: Transaction, eventType: String, reason: Option[ValidationError] = None): Unit = {
+    if (isNeutrino(tx)) neutrino.writeEvent(height, tx, eventType, reason)
+    ordinary.writeEvent(height, tx, eventType, reason)
+  }
 }

@@ -194,14 +194,16 @@ class UtxPoolImpl(
 
     if (!verify || diffEi.resultE.isRight) {
       if (priority) priorityTransactions.synchronized {
-        priorityTransactions += tx.id() -> tx
-        PoolMetrics.addTransactionPriority(tx)
-        addPortfolio()
+        if (priorityTransactions.put(tx.id(), tx).isEmpty) {
+          ResponsivenessLogs.writeEvent(blockchain.height, tx, "received")
+          PoolMetrics.addTransactionPriority(tx)
+          addPortfolio()
+        }
       } else
         transactions.computeIfAbsent(tx.id(), { _ =>
           ResponsivenessLogs.writeEvent(blockchain.height, tx, "received")
-        PoolMetrics.addTransaction(tx)
-        addPortfolio()
+          PoolMetrics.addTransaction(tx)
+          addPortfolio()
           tx
         })
     }
@@ -358,8 +360,8 @@ class UtxPoolImpl(
 
   @scala.annotation.tailrec
   private def extractErrorClass(error: ValidationError): ValidationError = error match {
-    case TransactionValidationError(cause, _)               => extractErrorClass(cause)
-    case other                                              => other
+    case TransactionValidationError(cause, _) => extractErrorClass(cause)
+    case other                                => other
   }
 
   @scala.annotation.tailrec
@@ -420,9 +422,9 @@ class UtxPoolImpl(
   private[this] object PoolMetrics {
     private[this] val SampleInterval: Duration = Duration.of(500, ChronoUnit.MILLIS)
 
-    private[this] val sizeStats  = Kamon.rangeSampler("utx.pool-size", MeasurementUnit.none, SampleInterval)
-    private[this] val neutrinoSizeStats  = Kamon.rangeSampler("neutrino.utx-pool-size", MeasurementUnit.none, SampleInterval)
-    private[this] val bytesStats = Kamon.rangeSampler("utx.pool-bytes", MeasurementUnit.information.bytes, SampleInterval)
+    private[this] val sizeStats         = Kamon.rangeSampler("utx.pool-size", MeasurementUnit.none, SampleInterval)
+    private[this] val neutrinoSizeStats = Kamon.rangeSampler("neutrino.utx-pool-size", MeasurementUnit.none, SampleInterval)
+    private[this] val bytesStats        = Kamon.rangeSampler("utx.pool-bytes", MeasurementUnit.information.bytes, SampleInterval)
 
     private[this] val prioritySizeStats  = Kamon.rangeSampler("utx.priority-pool-size", MeasurementUnit.none, SampleInterval)
     private[this] val priorityBytesStats = Kamon.rangeSampler("utx.priority-pool-bytes", MeasurementUnit.information.bytes, SampleInterval)

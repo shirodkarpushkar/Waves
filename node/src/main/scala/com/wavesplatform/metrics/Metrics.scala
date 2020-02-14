@@ -15,7 +15,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.control.NonFatal
 
 object Metrics extends ScorexLogging {
-
   case class InfluxDbSettings(uri: URI,
                               db: String,
                               username: Option[String],
@@ -81,7 +80,7 @@ object Metrics extends ScorexLogging {
       db.foreach(_.close())
     }.runAsyncLogErr
 
-  def write(b: Point.Builder, ts: Long = time.getTimestamp()): Unit = {
+  def write(b: Point.Builder, ts: Long = currentTime): Unit = {
     db.foreach { db =>
       Task {
         try {
@@ -99,6 +98,8 @@ object Metrics extends ScorexLogging {
       }.runAsyncLogErr
     }
   }
+
+  private[this] def currentTime: Long = Option(time).fold(System.currentTimeMillis())(_.getTimestamp())
 
   def writeEvent(name: String): Unit = write(Point.measurement(name))
 

@@ -25,6 +25,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
       received: Long,
       firstMined: Option[MetricSnapshot],
       lastMined: Option[MetricSnapshot],
+      failed: Option[MetricSnapshot],
       miningAttempt: Int,
       height: Int
   )
@@ -45,7 +46,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
         if (eventType == "received")
           stateMap(tx.id()) = stateMap.get(tx.id()) match {
             case None =>
-              TxState(nowNanos, None, None, 0, height)
+              TxState(nowNanos, None, None, None, 0, height)
 
             case Some(state) =>
               state.copy(lastMined = None, miningAttempt = if (state.lastMined.nonEmpty) state.miningAttempt + 1 else state.miningAttempt)
@@ -60,7 +61,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
 
         if (eventType == "mined") {
           stateMap.get(tx.id()).foreach {
-            case TxState(received, firstMined, _, attempt, _) =>
+            case TxState(received, firstMined, _, _, attempt, _) =>
               val delta = toMillis(nowNanos - received)
               log.trace(s"Neutrino mining time for ${tx.id()} (attempt #$attempt): $delta ms")
 
@@ -69,29 +70,39 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
                 received,
                 firstMined.orElse(Some(snapshot)),
                 Some(snapshot),
+                None,
                 attempt,
                 height
               )
           }
         } else if (eventType == "expired" || (eventType == "invalidated" && reasonClass != "AlreadyInTheState")) {
-          stateMap.remove(tx.id()).foreach {
-            case TxState(received, firstMined, _, _, _) =>
-              val delta      = toMillis(nowNanos - received)
-              val ffDelta    = toMillis(firstMined.fold(0L)(ms => nowNanos - ms.nano))
-              val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
+          stateMap.get(tx.id()).foreach {
+            case st @ TxState(received, firstMined, _, _, _, _) =>
+              val delta = toMillis(nowNanos - received)
               log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
-              Metrics.write(
-                basePoint
-                  .tag("reason", reasonClass)
-                  .addField("time-to-first-mine", firstDelta)
-                  .addField("time-to-fail", delta)
-                  .addField("time-to-finish-after-first-mining", ffDelta)
-              )
+
+              val baseFailedPoint = basePoint
+                .tag("reason", reasonClass)
+                .addField("time-to-fail", delta)
+
+              val failedPoint = firstMined match {
+                case Some(ms) =>
+                  val ffDelta    = toMillis(nowNanos - ms.nano)
+                  val firstDelta = toMillis(ms.nano - received)
+                  baseFailedPoint
+                    .addField("time-to-first-mine", firstDelta)
+                    .addField("time-to-finish-after-first-mining", ffDelta)
+
+                case None =>
+                  baseFailedPoint
+              }
+
+              stateMap(tx.id()) = st.copy(failed = Some(MetricSnapshot(failedPoint)))
           }
         }
 
         stateMap.toVector.collect {
-          case (txId, TxState(received, firstMined, Some(mined), _, h)) if (h + 5) <= height =>
+          case (txId, TxState(received, firstMined, Some(mined), _, _, h)) if (h + 5) <= height =>
             val ffDelta    = toMillis(firstMined.fold(0L)(ms => mined.nano - ms.nano))
             val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
             val finalPoint = mined.point
@@ -101,7 +112,13 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
             Metrics.write(finalPoint, mined.millis)
             stateMap -= txId
 
-          case (txId, TxState(_, _, _, _, h)) if (h + 100) <= height =>
+          case (txId, st) if (st.height + 100) <= height && st.failed.isDefined =>
+            val Some(MetricSnapshot(point, _, millis)) = st.failed
+            log.trace(s"Writing responsiveness point: ${point.build()}")
+            Metrics.write(point, millis)
+            stateMap -= txId
+
+          case (txId, st) if (st.height + 1000) < height =>
             stateMap -= txId
         }
       }

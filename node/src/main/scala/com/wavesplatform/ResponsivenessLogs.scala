@@ -23,6 +23,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
 
   private[this] case class TxState(
       received: Long,
+      lastReceived: Long,
       firstMined: Option[MetricSnapshot],
       lastMined: Option[MetricSnapshot],
       failed: Option[MetricSnapshot],
@@ -46,10 +47,14 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
         if (eventType == "received")
           stateMap(tx.id()) = stateMap.get(tx.id()) match {
             case None =>
-              TxState(nowNanos, None, None, None, 0, height)
+              TxState(nowNanos, nowNanos, None, None, None, 0, height)
 
             case Some(state) =>
-              state.copy(lastMined = None, miningAttempt = if (state.lastMined.nonEmpty) state.miningAttempt + 1 else state.miningAttempt)
+              state.copy(
+                lastReceived = nowNanos,
+                lastMined = None,
+                miningAttempt = if (state.lastMined.nonEmpty) state.miningAttempt + 1 else state.miningAttempt
+              )
           }
 
         val basePoint = Point
@@ -61,13 +66,15 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
 
         if (eventType == "mined") {
           stateMap.get(tx.id()).foreach {
-            case TxState(received, firstMined, _, _, attempt, _) =>
-              val delta = toMillis(nowNanos - received)
-              log.trace(s"Neutrino mining time for ${tx.id()} (attempt #$attempt): $delta ms")
+            case TxState(received, lastReceived, firstMined, _, _, attempt, _) =>
+              val delta     = toMillis(nowNanos - received)
+              val lastDelta = toMillis(nowNanos - lastReceived)
+              log.trace(s"Neutrino mining time for ${tx.id()} (attempt #$attempt): $delta ms ($lastDelta from last recv)")
 
-              val snapshot = MetricSnapshot(basePoint.addField("time-to-mine", delta), nowNanos)
+              val snapshot = MetricSnapshot(basePoint.addField("time-to-mine", delta).addField("time-to-last-mine", lastDelta), nowNanos)
               stateMap(tx.id()) = TxState(
                 received,
+                lastReceived,
                 firstMined.orElse(Some(snapshot)),
                 Some(snapshot),
                 None,
@@ -77,13 +84,15 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
           }
         } else if (eventType == "expired" || (eventType == "invalidated" && reasonClass != "AlreadyInTheState")) {
           stateMap.get(tx.id()).foreach {
-            case st @ TxState(received, firstMined, _, _, _, _) =>
-              val delta = toMillis(nowNanos - received)
+            case st @ TxState(received, lastReceived, firstMined, _, _, _, _) =>
+              val delta     = toMillis(nowNanos - received)
+              val lastDelta = toMillis(nowNanos - lastReceived)
               log.trace(s"Neutrino fail time for ${tx.id()}: $delta ms")
 
               val baseFailedPoint = basePoint
                 .tag("reason", reasonClass)
                 .addField("time-to-fail", delta)
+                .addField("time-to-last-fail", lastDelta)
 
               val failedPoint = firstMined match {
                 case Some(ms) =>
@@ -102,7 +111,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
         }
 
         stateMap.toVector.collect {
-          case (txId, TxState(received, firstMined, Some(mined), _, _, h)) if (h + 5) <= height =>
+          case (txId, TxState(received, _, firstMined, Some(mined), _, _, h)) if (h + 5) <= height =>
             val ffDelta    = toMillis(firstMined.fold(0L)(ms => mined.nano - ms.nano))
             val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
             val finalPoint = mined.point

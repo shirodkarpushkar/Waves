@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import cats.Monoid
 import cats.syntax.monoid._
-import com.wavesplatform.ResponsivenessLogs
+import com.wavesplatform.{ResponsivenessLogs, StrangeExchangeLogs}
 import com.wavesplatform.account.{Address, Alias}
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.consensus.TransactionsOrdering
@@ -156,7 +156,9 @@ class UtxPoolImpl(
 
     val tracedIsNew = TracedResult(checks).flatMap(_ => addTransaction(tx, verify, priority = false))
     tracedIsNew.resultE match {
-      case Right(isNew) => log.trace(s"UTX putIfNew(${tx.id()}) succeeded, isNew = $isNew")
+      case Right(isNew) =>
+        log.trace(s"UTX putIfNew(${tx.id()}) succeeded, isNew = $isNew")
+        if (StrangeExchangeLogs.isApplicable(blockchain, tx)) StrangeExchangeLogs.write(tx)
       case Left(err) =>
         log.debug(s"UTX putIfNew(${tx.id()}) failed with ${extractErrorMessage(err)}")
         traceLogger.trace(err.toString)

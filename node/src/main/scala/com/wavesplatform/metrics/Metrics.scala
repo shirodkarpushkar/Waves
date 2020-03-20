@@ -15,12 +15,14 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.control.NonFatal
 
 object Metrics extends ScorexLogging {
-  case class InfluxDbSettings(uri: URI,
-                              db: String,
-                              username: Option[String],
-                              password: Option[String],
-                              batchActions: Int,
-                              batchFlashDuration: FiniteDuration)
+  case class InfluxDbSettings(
+      uri: URI,
+      db: String,
+      username: Option[String],
+      password: Option[String],
+      batchActions: Int,
+      batchFlashDuration: FiniteDuration
+  )
 
   case class Settings(enable: Boolean, nodeId: Int, influxDb: InfluxDbSettings)
 
@@ -58,6 +60,7 @@ object Metrics extends ScorexLogging {
           }
           x.setDatabase(dbSettings.db)
           x.enableBatch(dbSettings.batchActions, dbSettings.batchFlashDuration.toSeconds.toInt, TimeUnit.SECONDS)
+          x.setRetentionPolicy("")
 
           try {
             val pong = x.ping()
@@ -80,7 +83,14 @@ object Metrics extends ScorexLogging {
       db.foreach(_.close())
     }.runAsyncLogErr
 
-  def write(b: Point.Builder, ts: Long = currentTime): Unit = {
+  def withRetentionPolicy(retentionPolicy: String)(f: => Unit): Unit =
+    db.synchronized(db.foreach { db =>
+      db.setRetentionPolicy(retentionPolicy)
+      try f
+      finally db.setRetentionPolicy("")
+    })
+
+  def write(b: Point.Builder, ts: Long = currentTime): Unit = db.synchronized {
     db.foreach { db =>
       Task {
         try {
@@ -91,7 +101,8 @@ object Metrics extends ScorexLogging {
               .addField("node", settings.nodeId)
               .tag("node", settings.nodeId.toString)
               .time(ts, TimeUnit.MILLISECONDS)
-              .build())
+              .build()
+          )
         } catch {
           case e: Throwable => log.warn(s"Failed to send data to InfluxDB (${e.getMessage})")
         }

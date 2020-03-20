@@ -153,7 +153,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
         finally pw.close()
       }
 
-      writeMetrics()
+      Metrics.withRetentionPolicy("weeks2")(writeMetrics())
       writeCsvLog(csvPrefix)
     }).failed.foreach(log.error("Error writing responsiveness metrics", _))
 }

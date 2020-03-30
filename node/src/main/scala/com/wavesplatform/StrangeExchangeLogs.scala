@@ -9,9 +9,9 @@ import com.wavesplatform.transaction.assets.exchange.ExchangeTransaction
 object StrangeExchangeLogs {
   def isApplicable(blockchain: Blockchain, tx: Transaction): Boolean = tx match {
     case et: ExchangeTransaction =>
-      val sellBalance = blockchain.balance(et.sellOrder.sender)
+      val sellBalance = blockchain.balance(et.sellOrder.sender, et.sellOrder.matcherFeeAssetId)
       val sellFee     = et.sellMatcherFee
-      val buyBalance  = blockchain.balance(et.buyOrder.sender)
+      val buyBalance  = blockchain.balance(et.buyOrder.sender, et.sellOrder.matcherFeeAssetId)
       val buyFee      = et.buyMatcherFee
       sellBalance < sellFee || buyBalance < buyFee
 

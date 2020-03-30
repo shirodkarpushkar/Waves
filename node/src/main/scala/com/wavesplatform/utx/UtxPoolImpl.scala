@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 import cats.Monoid
 import cats.syntax.monoid._
-import com.wavesplatform.{ResponsivenessLogs, StrangeExchangeLogs}
 import com.wavesplatform.account.{Address, Alias}
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.consensus.TransactionsOrdering
@@ -27,6 +26,7 @@ import com.wavesplatform.transaction.smart.InvokeScriptTransaction
 import com.wavesplatform.transaction.smart.script.trace.TracedResult
 import com.wavesplatform.transaction.transfer._
 import com.wavesplatform.utils.{LoggerFacade, Schedulers, ScorexLogging, Time}
+import com.wavesplatform.{ResponsivenessLogs, StrangeExchangeLogs}
 import kamon.Kamon
 import kamon.metric.MeasurementUnit
 import monix.execution.atomic.AtomicBoolean
@@ -158,7 +158,6 @@ class UtxPoolImpl(
     tracedIsNew.resultE match {
       case Right(isNew) =>
         log.trace(s"UTX putIfNew(${tx.id()}) succeeded, isNew = $isNew")
-        if (StrangeExchangeLogs.isApplicable(blockchain, tx)) StrangeExchangeLogs.write(tx)
       case Left(err) =>
         log.debug(s"UTX putIfNew(${tx.id()}) failed with ${extractErrorMessage(err)}")
         traceLogger.trace(err.toString)
@@ -195,6 +194,9 @@ class UtxPoolImpl(
     def addPortfolio(): Unit = diffEi.map(pessimisticPortfolios.add(tx.id(), _))
 
     if (!verify || diffEi.resultE.isRight) {
+      if (StrangeExchangeLogs.isApplicable(blockchain, tx))
+        StrangeExchangeLogs.write(tx, if (verify) System.currentTimeMillis() else blockchain.lastBlockTimestamp.getOrElse(0L))
+
       if (priority) priorityTransactions.synchronized {
         if (priorityTransactions.put(tx.id(), tx).isEmpty) {
           ResponsivenessLogs.writeEvent(blockchain.height, tx, "received")

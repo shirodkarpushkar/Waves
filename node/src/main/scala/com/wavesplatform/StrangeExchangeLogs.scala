@@ -18,10 +18,9 @@ object StrangeExchangeLogs {
     case _ => false
   }
 
-  def write(tx: Transaction): Unit = {
+  def write(tx: Transaction, timestamp: Long): Unit = {
     val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/exchanges-wo-fee.csv", true)
     val pw         = new PrintWriter(fileStream)
-    val timestamp  = System.currentTimeMillis()
     val txJson     = tx.json().toString()
     val logLine    = s"${tx.id()};$timestamp;$txJson"
     // log.info(logLine)

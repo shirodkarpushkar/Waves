@@ -5,6 +5,7 @@ import java.util
 import cats.syntax.monoid._
 import cats.syntax.option._
 import com.google.common.cache._
+import com.wavesplatform.StrangeExchangeLogs
 import com.wavesplatform.account.{Address, Alias}
 import com.wavesplatform.block.{Block, BlockHeader}
 import com.wavesplatform.common.state.ByteStr
@@ -14,6 +15,8 @@ import com.wavesplatform.lang.script.Script
 import com.wavesplatform.metrics.LevelDBStats
 import com.wavesplatform.settings.DBSettings
 import com.wavesplatform.state._
+import com.wavesplatform.state.diffs.TransactionDiffer
+import com.wavesplatform.state.reader.CompositeBlockchain
 import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
 import com.wavesplatform.transaction.{Asset, Transaction}
 import com.wavesplatform.utils.{ObservedLoadingCache, ScorexLogging}
@@ -22,6 +25,7 @@ import monix.reactive.Observer
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
+import scala.util.Try
 
 abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) extends Blockchain with ScorexLogging {
   import Caches._
@@ -218,6 +222,16 @@ abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) exten
 
   def append(diff: Diff, carryFee: Long, totalFee: Long, reward: Option[Long], block: Block): Unit = {
     val newHeight = current._1 + 1
+    Try {
+      val txDiffer = TransactionDiffer(this.lastBlockTimestamp, block.timestamp, newHeight, verify = false) _
+      block.transactionData.foldLeft(Diff.empty) { case (diff, tx) =>
+        val cb = CompositeBlockchain(this, Some(diff), Some(block), carryFee, reward)
+        val assets = StrangeExchangeLogs.affectedAssets(cb, tx)
+        if (assets.nonEmpty) StrangeExchangeLogs.write(tx, block.timestamp, assets)
+        val newDiff = txDiffer(cb, tx).resultE.fold(_ => diff, d1 => diff.combine(d1))
+        newDiff
+      }
+    }
 
     val newAddresses = Set.newBuilder[Address]
     newAddresses ++= diff.portfolios.keys.filter(addressIdCache.get(_).isEmpty)

@@ -194,9 +194,6 @@ class UtxPoolImpl(
     def addPortfolio(): Unit = diffEi.map(pessimisticPortfolios.add(tx.id(), _))
 
     if (!verify || diffEi.resultE.isRight) {
-      if (StrangeExchangeLogs.isApplicable(blockchain, tx))
-        StrangeExchangeLogs.write(tx, if (verify) System.currentTimeMillis() else blockchain.lastBlockTimestamp.getOrElse(0L))
-
       if (priority) priorityTransactions.synchronized {
         if (priorityTransactions.put(tx.id(), tx).isEmpty) {
           ResponsivenessLogs.writeEvent(blockchain.height, tx, "received")

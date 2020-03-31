@@ -225,7 +225,7 @@ abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) exten
     val newHeight = current._1 + 1
     Try {
       val txDiffer = TransactionDiffer(this.lastBlockTimestamp, block.timestamp, newHeight) _
-      block.transactionData.foldLeft(diff) { case (diff, tx) =>
+      block.transactionData.foldLeft(Diff.empty) { case (diff, tx) =>
         val cb = CompositeBlockchain(this, Some(diff), Some(block), carryFee, reward)
         val newDiff = txDiffer(cb, tx).resultE
         val assets = StrangeExchangeLogs.affectedAssets(cb, tx)

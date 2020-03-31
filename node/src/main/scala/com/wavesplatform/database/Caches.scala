@@ -18,6 +18,7 @@ import com.wavesplatform.state._
 import com.wavesplatform.state.diffs.TransactionDiffer
 import com.wavesplatform.state.reader.CompositeBlockchain
 import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
+import com.wavesplatform.transaction.assets.exchange.ExchangeTransaction
 import com.wavesplatform.transaction.{Asset, Transaction}
 import com.wavesplatform.utils.{ObservedLoadingCache, ScorexLogging}
 import monix.reactive.Observer
@@ -226,9 +227,12 @@ abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) exten
       val txDiffer = TransactionDiffer(this.lastBlockTimestamp, block.timestamp, newHeight, verify = false) _
       block.transactionData.foldLeft(Diff.empty) { case (diff, tx) =>
         val cb = CompositeBlockchain(this, Some(diff), Some(block), carryFee, reward)
-        val assets = StrangeExchangeLogs.affectedAssets(cb, tx)
-        if (assets.nonEmpty) StrangeExchangeLogs.write(tx, block.timestamp, assets)
         val newDiff = txDiffer(cb, tx).resultE.fold(_ => diff, d1 => diff.combine(d1))
+        val assets = StrangeExchangeLogs.affectedAssets(cb, tx)
+        if (assets.nonEmpty) {
+          StrangeExchangeLogs.write(tx, block.timestamp, assets)
+          StrangeExchangeLogs.writeDiffs(cb, tx.asInstanceOf[ExchangeTransaction], newDiff)
+        }
         newDiff
       }
     }

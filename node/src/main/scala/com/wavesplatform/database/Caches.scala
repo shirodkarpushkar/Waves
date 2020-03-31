@@ -224,16 +224,16 @@ abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) exten
   def append(diff: Diff, carryFee: Long, totalFee: Long, reward: Option[Long], block: Block): Unit = {
     val newHeight = current._1 + 1
     Try {
-      val txDiffer = TransactionDiffer(this.lastBlockTimestamp, block.timestamp, newHeight, verify = false) _
-      block.transactionData.foldLeft(Diff.empty) { case (diff, tx) =>
+      val txDiffer = TransactionDiffer(this.lastBlockTimestamp, block.timestamp, newHeight) _
+      block.transactionData.foldLeft(diff) { case (diff, tx) =>
         val cb = CompositeBlockchain(this, Some(diff), Some(block), carryFee, reward)
-        val newDiff = txDiffer(cb, tx).resultE.fold(_ => diff, d1 => diff.combine(d1))
+        val newDiff = txDiffer(cb, tx).resultE
         val assets = StrangeExchangeLogs.affectedAssets(cb, tx)
         if (assets.nonEmpty) {
           StrangeExchangeLogs.write(tx, block.timestamp, assets)
-          StrangeExchangeLogs.writeDiffs(cb, tx.asInstanceOf[ExchangeTransaction], newDiff)
+          StrangeExchangeLogs.writeDiffs(cb, tx.asInstanceOf[ExchangeTransaction], newDiff.getOrElse(Diff.empty))
         }
-        newDiff
+        newDiff.fold(_ => diff, diff.combine(_))
       }
     }
 

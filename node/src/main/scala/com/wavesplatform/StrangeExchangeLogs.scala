@@ -37,7 +37,7 @@ object StrangeExchangeLogs {
   def writeDiffs(blockchain: Blockchain, tx: ExchangeTransaction, diff: Diff): Unit = {
     val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/exchanges-wo-fee-diffs.csv", true)
     val pw         = new PrintWriter(fileStream)
-    val balances = (Seq(tx.sellOrder.matcherFeeAssetId, tx.buyOrder.matcherFeeAssetId, tx.assetFee._1) ++ tx.checkedAssets()).distinct.flatMap {
+    val balances = Seq(tx.sellOrder.matcherFeeAssetId, tx.buyOrder.matcherFeeAssetId).distinct.flatMap {
       asset =>
         val buyer  = blockchain.balance(tx.buyOrder.sender, asset)
         val seller = blockchain.balance(tx.sellOrder.sender, asset)
@@ -54,7 +54,22 @@ object StrangeExchangeLogs {
       }
       .mkString(",")
 
-    val logLine = s"${tx.id()};$balancesStr;$diff"
+    val fee = Seq(
+      ("buyer", tx.buyOrder.matcherFeeAssetId, tx.buyMatcherFee),
+      ("seller", tx.sellOrder.matcherFeeAssetId, tx.sellMatcherFee),
+    )
+
+    val feeStr = fee
+      .map {
+        case (side, asset, fee) =>
+          s"$side fee = $fee ${asset match {
+            case Asset.IssuedAsset(id) => id.toString
+            case Asset.Waves           => "WAVES"
+          }}"
+      }
+      .mkString(",")
+
+    val logLine = s"${tx.id()};$balancesStr;$feeStr;${diff.portfolios}"
     // log.info(logLine)
     try pw.println(logLine)
     finally pw.close()

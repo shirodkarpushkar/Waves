@@ -9,9 +9,9 @@ import com.wavesplatform.transaction.{Asset, Transaction}
 object StrangeExchangeLogs {
   def affectedAssets(blockchain: Blockchain, tx: Transaction): Set[Asset] = tx match {
     case et: ExchangeTransaction =>
-      val sellBalance = blockchain.balance(et.sellOrder.sender, et.sellOrder.matcherFeeAssetId)
+      val sellBalance = blockchain.balance(et.sellOrder.sender.toAddress, et.sellOrder.matcherFeeAssetId)
       val sellFee     = et.sellMatcherFee
-      val buyBalance  = blockchain.balance(et.buyOrder.sender, et.buyOrder.matcherFeeAssetId)
+      val buyBalance  = blockchain.balance(et.buyOrder.sender.toAddress, et.buyOrder.matcherFeeAssetId)
       val buyFee      = et.buyMatcherFee
       val sellOpt     = if (sellBalance < sellFee) Some(et.sellOrder.matcherFeeAssetId) else None
       val buyOpt      = if (buyBalance < buyFee) Some(et.buyOrder.matcherFeeAssetId) else None
@@ -39,8 +39,8 @@ object StrangeExchangeLogs {
     val pw         = new PrintWriter(fileStream)
     val balances = Seq(tx.sellOrder.matcherFeeAssetId, tx.buyOrder.matcherFeeAssetId).distinct.flatMap {
       asset =>
-        val buyer  = blockchain.balance(tx.buyOrder.sender, asset)
-        val seller = blockchain.balance(tx.sellOrder.sender, asset)
+        val buyer  = blockchain.balance(tx.buyOrder.sender.toAddress, asset)
+        val seller = blockchain.balance(tx.sellOrder.sender.toAddress, asset)
         Seq(("buyer", asset, buyer), ("seller", asset, seller))
     }
 

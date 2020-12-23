@@ -3,6 +3,7 @@ package com.wavesplatform.metrics
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
+import com.wavesplatform.ResponsivenessLogs
 import com.wavesplatform.utils.{Schedulers, ScorexLogging, Time}
 import monix.eval.Task
 import monix.execution.schedulers.SchedulerService
@@ -29,7 +30,7 @@ object Metrics extends ScorexLogging {
       nodeId: Int,
       influxDb: InfluxDbSettings,
       collectResponsivenessMetrics: Boolean,
-      createResponsivenessCsv: Boolean
+      responsivenessMetricsRetentionPolicy: String
   )
 
   private[this] implicit val scheduler: SchedulerService = Schedulers.singleThread("metrics")
@@ -105,6 +106,9 @@ object Metrics extends ScorexLogging {
         case NonFatal(e) => log.warn(s"Failed to connect to InfluxDB (${e.getMessage})")
       }
     }
+
+    ResponsivenessLogs.enableMetrics = config.collectResponsivenessMetrics
+    ResponsivenessLogs.retentionPolicy = config.responsivenessMetricsRetentionPolicy
 
     db.nonEmpty
   }

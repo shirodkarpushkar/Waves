@@ -6,7 +6,6 @@ import cats.data.Ior
 import cats.syntax.monoid._
 import cats.syntax.option._
 import com.google.common.cache._
-import com.wavesplatform.StrangeExchangeLogs
 import com.wavesplatform.account.{Address, Alias}
 import com.wavesplatform.block.{Block, SignedBlockHeader}
 import com.wavesplatform.common.state.ByteStr
@@ -14,10 +13,7 @@ import com.wavesplatform.metrics.LevelDBStats
 import com.wavesplatform.settings.DBSettings
 import com.wavesplatform.state.DiffToStateApplier.PortfolioUpdates
 import com.wavesplatform.state._
-import com.wavesplatform.state.diffs.TransactionDiffer
-import com.wavesplatform.state.reader.CompositeBlockchain
 import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
-import com.wavesplatform.transaction.assets.exchange.ExchangeTransaction
 import com.wavesplatform.transaction.{Asset, Transaction}
 import com.wavesplatform.utils.ObservedLoadingCache
 import monix.reactive.Observer
@@ -25,7 +21,6 @@ import monix.reactive.Observer
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
-import scala.util.Try
 
 abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) extends Blockchain with Storage {
   import Caches._
@@ -181,21 +176,6 @@ abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) exten
 
   override def append(diff: Diff, carryFee: Long, totalFee: Long, reward: Option[Long], hitSource: ByteStr, block: Block): Unit = {
     val newHeight = current._1 + 1
-    Try {
-      val txDiffer = TransactionDiffer(this.lastBlockTimestamp, block.header.timestamp, verify = false) _
-      block.transactionData.foldLeft(Diff.empty) {
-        case (diff, tx) =>
-          val cb      = CompositeBlockchain(this, Some(diff), Some(block), carryFee, reward)
-          val newDiff = txDiffer(cb, tx).resultE
-          val assets  = StrangeExchangeLogs.affectedAssets(cb, tx)
-          if (assets.nonEmpty) {
-            StrangeExchangeLogs.write(tx, block.header.timestamp, assets)
-            StrangeExchangeLogs.writeDiffs(cb, tx.asInstanceOf[ExchangeTransaction], newDiff.getOrElse(Diff.empty))
-          }
-          newDiff.fold(_ => diff, diff.combine(_))
-      }
-    }
-
     val stateHash = new StateHashBuilder
 
     val newAddresses = Set.newBuilder[Address]

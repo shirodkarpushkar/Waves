@@ -24,7 +24,13 @@ object Metrics extends ScorexLogging {
       batchFlashDuration: FiniteDuration
   )
 
-  case class Settings(enable: Boolean, nodeId: Int, influxDb: InfluxDbSettings)
+  case class Settings(
+      enable: Boolean,
+      nodeId: Int,
+      influxDb: InfluxDbSettings,
+      collectResponsivenessMetrics: Boolean,
+      createResponsivenessCsv: Boolean
+  )
 
   private[this] implicit val scheduler: SchedulerService = Schedulers.singleThread("metrics")
 
@@ -43,7 +49,7 @@ object Metrics extends ScorexLogging {
       finally db.setRetentionPolicy("")
     })
 
-  def write(b: Point.Builder, ts: Long = currentTime): Unit = db.synchronized {
+  def write(b: Point.Builder, ts: Long = currentTimestamp): Unit = db.synchronized {
     db.foreach { db =>
       Task {
         try {
@@ -62,8 +68,6 @@ object Metrics extends ScorexLogging {
       }.runAsyncLogErr
     }
   }
-
-  private[this] def currentTime: Long = Option(time).fold(System.currentTimeMillis())(_.getTimestamp())
 
   def writeEvent(name: String): Unit = write(Point.measurement(name))
 

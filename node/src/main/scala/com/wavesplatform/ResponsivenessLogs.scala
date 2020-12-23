@@ -18,6 +18,8 @@ import scala.concurrent.duration.Duration
 import scala.util.Try
 
 private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends ScorexLogging {
+  import ResponsivenessLogs.TxEvent
+
   //noinspection ScalaStyle
   private[this] case class MetricSnapshot(point: Point.Builder = null, nano: Long = System.nanoTime(), millis: Long = System.currentTimeMillis())
 
@@ -32,19 +34,19 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
   )
   private[this] val stateMap = mutable.AnyRefMap.empty[ByteStr, TxState]
 
-  def writeEvent(height: Int, tx: Transaction, eventType: String, reason: Option[ValidationError] = None): Unit =
+  def writeEvent(height: Int, tx: Transaction, eventType: TxEvent, reason: Option[ValidationError] = None, writeCsv: Boolean = false): Unit =
     Try(synchronized {
       val reasonClass = reason match {
-        case Some(value)                 => value.getClass.getSimpleName
-        case _ if eventType == "expired" => "Expired"
-        case _                           => "Unknown"
+        case Some(value)                       => value.getClass.getSimpleName
+        case _ if eventType == TxEvent.Expired => "Expired"
+        case _                                 => "Unknown"
       }
 
       def writeMetrics(): Unit = {
         def toMillis(ns: Long) = Duration.fromNanos(ns).toMillis
         val nowNanos           = System.nanoTime()
 
-        if (eventType == "received")
+        if (eventType == TxEvent.Received)
           stateMap(tx.id()) = stateMap.get(tx.id()) match {
             case None =>
               TxState(nowNanos, nowNanos, None, None, None, 0, height)
@@ -60,11 +62,11 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
         val basePoint = Point
           .measurement(metricName)
           .tag("id", tx.id().toString)
-          .tag("event", eventType)
+          .tag("event", eventType.toString.toLowerCase)
           .addField("type", tx.builder.typeId)
           .addField("height", height)
 
-        if (eventType == "mined") {
+        if (eventType == TxEvent.Mined) {
           stateMap.get(tx.id()).foreach {
             case TxState(received, lastReceived, firstMined, _, _, attempt, _) =>
               val delta     = toMillis(nowNanos - received)
@@ -82,7 +84,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
                 height
               )
           }
-        } else if (eventType == "expired" || (eventType == "invalidated" && reasonClass != "AlreadyInTheState")) {
+        } else if (eventType == TxEvent.Expired || (eventType == TxEvent.Invalidated && reasonClass != "AlreadyInTheState")) {
           stateMap.get(tx.id()).foreach {
             case st @ TxState(received, lastReceived, firstMined, _, _, _, _) =>
               val delta     = toMillis(nowNanos - received)
@@ -154,13 +156,21 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
       }
 
       Metrics.withRetentionPolicy("weeks2")(writeMetrics())
-      writeCsvLog(csvPrefix)
+      if (writeCsv) writeCsvLog(csvPrefix)
     }).failed.foreach(log.error("Error writing responsiveness metrics", _))
 }
 
 object ResponsivenessLogs {
+  var enableMetrics = false
+  var enableCsv     = false
+
   private[this] val neutrino = new ResponsivenessLogs("neutrino", "neutrino")
   private[this] val ordinary = new ResponsivenessLogs("tx", "blockchain-responsiveness")
+
+  type TxEvent = TxEvent.Value
+  object TxEvent extends Enumeration {
+    val Received, Mined, Expired, Invalidated = Value
+  }
 
   def isNeutrino(tx: Transaction): Boolean = {
     val txAddrs = tx match {
@@ -184,8 +194,10 @@ object ResponsivenessLogs {
     txAddrs.map(_.stringRepr).exists(neutrinoAddrs)
   }
 
-  def writeEvent(height: Int, tx: Transaction, eventType: String, reason: Option[ValidationError] = None): Unit = {
-    if (isNeutrino(tx)) neutrino.writeEvent(height, tx, eventType, reason)
-    ordinary.writeEvent(height, tx, eventType, reason)
-  }
+  def writeEvent(height: Int, tx: Transaction, eventType: TxEvent, reason: Option[ValidationError] = None): Unit =
+    if (!enableMetrics) ()
+    else {
+      if (isNeutrino(tx)) neutrino.writeEvent(height, tx, eventType, reason, enableCsv)
+      ordinary.writeEvent(height, tx, eventType, reason, enableCsv)
+    }
 }

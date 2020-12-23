@@ -204,7 +204,7 @@ class UtxPoolImpl(
     val priorityRemoved = priorityPool.removeIds(removed)
     val factRemoved     = priorityRemoved ++ removed.flatMap(id => removeFromOrdPool(id))
     factRemoved.foreach { tx =>
-      ResponsivenessLogs.writeEvent(blockchain.height, tx, "mined")
+      ResponsivenessLogs.writeEvent(blockchain.height, tx, ResponsivenessLogs.TxEvent.Mined)
       onEvent(UtxEvent.TxRemoved(tx, None))
     }
   }
@@ -235,7 +235,7 @@ class UtxPoolImpl(
     if (!verify || diffEi.resultE.isRight) {
       transactions.computeIfAbsent(tx.id(), { _ =>
         PoolMetrics.addTransaction(tx)
-        ResponsivenessLogs.writeEvent(blockchain.height, tx, "received")
+        ResponsivenessLogs.writeEvent(blockchain.height, tx, ResponsivenessLogs.TxEvent.Received)
         addPortfolio()
         tx
       })
@@ -340,7 +340,7 @@ class UtxPoolImpl(
                 r // don't run any checks here to speed up mining
               else if (TxCheck.isExpired(tx)) {
                 log.debug(s"Transaction ${tx.id()} expired")
-                ResponsivenessLogs.writeEvent(blockchain.height, tx, "expired")
+                ResponsivenessLogs.writeEvent(blockchain.height, tx, ResponsivenessLogs.TxEvent.Expired)
                 this.removeFromOrdPool(tx.id())
                 onEvent(UtxEvent.TxRemoved(tx, Some(GenericError("Expired"))))
                 r.copy(iterations = r.iterations + 1, removedTransactions = r.removedTransactions + tx.id())
@@ -390,7 +390,7 @@ class UtxPoolImpl(
                       r
 
                     case Left(error) =>
-                      ResponsivenessLogs.writeEvent(blockchain.height, tx, "invalidated", Some(extractErrorClass(error)))
+                      ResponsivenessLogs.writeEvent(blockchain.height, tx, ResponsivenessLogs.TxEvent.Invalidated, Some(extractErrorClass(error)))
                       log.debug(s"Transaction ${tx.id()} removed due to ${extractErrorMessage(error)}")
                       traceLogger.trace(error.toString)
                       this.removeFromOrdPool(tx.id())

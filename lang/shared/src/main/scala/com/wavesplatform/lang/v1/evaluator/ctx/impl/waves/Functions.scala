@@ -379,7 +379,7 @@ object Functions {
   val wavesBalanceV4F: BaseFunction[Environment] =
     NativeFunction.withEnvironment[Environment](
       "wavesBalance",
-      Map[StdLibVersion, Long](V1 -> 100L, V2 -> 100L, V3 -> 100L, V4 -> 10L),
+      10,
       ACCOUNTWAVESBALANCE,
       balanceDetailsType,
       ("addressOrAlias", addressOrAliasType)
@@ -478,7 +478,7 @@ object Functions {
     UserFunction(
       f.name ++ ExtractedFuncPostfix,
       ExtractedFuncPrefix ++ f.header.toString,
-      f.costByLibVersion,
+      f.costByLibVersionMap,
       f.signature.result.asInstanceOf[UNION].typeList.find(_ != UNIT).get,
       args: _*
     ) {

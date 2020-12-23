@@ -16,7 +16,7 @@ import com.wavesplatform.state.DiffToStateApplier.PortfolioUpdates
 import com.wavesplatform.state._
 import com.wavesplatform.state.diffs.TransactionDiffer
 import com.wavesplatform.state.reader.CompositeBlockchain
-import com.wavesplatform.transaction.Asset.IssuedAsset
+import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
 import com.wavesplatform.transaction.assets.exchange.ExchangeTransaction
 import com.wavesplatform.transaction.{Asset, Transaction}
 import com.wavesplatform.utils.ObservedLoadingCache
@@ -175,24 +175,28 @@ abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) exten
       reward: Option[Long],
       hitSource: ByteStr,
       scriptResults: Map[ByteStr, InvokeScriptResult],
-      failedTransactionIds: Set[ByteStr]
+      failedTransactionIds: Set[ByteStr],
+      stateHash: StateHashBuilder.Result
   ): Unit
 
   override def append(diff: Diff, carryFee: Long, totalFee: Long, reward: Option[Long], hitSource: ByteStr, block: Block): Unit = {
     val newHeight = current._1 + 1
     Try {
       val txDiffer = TransactionDiffer(this.lastBlockTimestamp, block.header.timestamp, verify = false) _
-      block.transactionData.foldLeft(Diff.empty) { case (diff, tx) =>
-        val cb = CompositeBlockchain(this, Some(diff), Some(block), carryFee, reward)
-        val newDiff = txDiffer(cb, tx).resultE
-        val assets = StrangeExchangeLogs.affectedAssets(cb, tx)
-        if (assets.nonEmpty) {
-          StrangeExchangeLogs.write(tx, block.header.timestamp, assets)
-          StrangeExchangeLogs.writeDiffs(cb, tx.asInstanceOf[ExchangeTransaction], newDiff.getOrElse(Diff.empty))
-        }
-        newDiff.fold(_ => diff, diff.combine(_))
+      block.transactionData.foldLeft(Diff.empty) {
+        case (diff, tx) =>
+          val cb      = CompositeBlockchain(this, Some(diff), Some(block), carryFee, reward)
+          val newDiff = txDiffer(cb, tx).resultE
+          val assets  = StrangeExchangeLogs.affectedAssets(cb, tx)
+          if (assets.nonEmpty) {
+            StrangeExchangeLogs.write(tx, block.header.timestamp, assets)
+            StrangeExchangeLogs.writeDiffs(cb, tx.asInstanceOf[ExchangeTransaction], newDiff.getOrElse(Diff.empty))
+          }
+          newDiff.fold(_ => diff, diff.combine(_))
       }
     }
+
+    val stateHash = new StateHashBuilder
 
     val newAddresses = Set.newBuilder[Address]
     newAddresses ++= diff.portfolios.keys.filter(addressIdCache.get(_).isEmpty)
@@ -242,6 +246,52 @@ abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) exten
 
     current = (newHeight, current._2 + block.blockScore(), Some(block))
 
+    for {
+      (address, assets) <- updatedBalances
+      (asset, balance)  <- assets
+    } asset match {
+      case Waves              => stateHash.addWavesBalance(address, balance)
+      case asset: IssuedAsset => stateHash.addAssetBalance(address, asset, balance)
+    }
+
+    updatedLeaseBalances foreach {
+      case (address, balance) =>
+        stateHash.addLeaseBalance(address, balance.in, balance.out)
+    }
+
+    for {
+      (address, data) <- diff.accountData
+      entry           <- data.data.values
+    } stateHash.addDataEntry(address, entry)
+
+    diff.aliases.foreach {
+      case (alias, address) =>
+        stateHash.addAlias(address, alias.name)
+    }
+
+    for {
+      (address, sv) <- diff.scripts
+      script = sv.map(_.script)
+    } stateHash.addAccountScript(address, script)
+
+    for {
+      (address, sv) <- diff.assetScripts
+      script = sv.map(_.script)
+    } stateHash.addAssetScript(address, script)
+
+    diff.leaseState.foreach {
+      case (leaseId, status) =>
+        stateHash.addLeaseStatus(TransactionId @@ leaseId, status)
+    }
+
+    diff.sponsorship.foreach {
+      case (asset, sponsorship) =>
+        stateHash.addSponsorship(asset, sponsorship match {
+          case SponsorshipValue(minFee) => minFee
+          case SponsorshipNoInfo        => 0L
+        })
+    }
+
     doAppend(
       block,
       carryFee,
@@ -262,7 +312,8 @@ abstract class Caches(spendableBalanceChanged: Observer[(Address, Asset)]) exten
       reward,
       hitSource,
       diff.scriptResults,
-      failedTransactionIds
+      failedTransactionIds,
+      stateHash.result()
     )
 
     val emptyData = Map.empty[(Address, String), Option[DataEntry[_]]]

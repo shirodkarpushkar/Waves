@@ -5,8 +5,8 @@ import com.wavesplatform.lang.v1.compiler.Terms
 
 object ContractLimits {
   val MaxComplexityByVersion: StdLibVersion => Int = {
-    case V1 | V2 => 2000
-    case V3 | V4 => 4000
+    case V1 | V2      => 2000
+    case V3 | V4 | V5 => 4000
   }
 
   // used after activation of BlockV5
@@ -49,7 +49,7 @@ object ContractLimits {
       EMPTYARR_WEIGHT + (ELEM_WEIGHT + 64L) * 8L +                            // proofs
       EMPTYARR_WEIGHT + (ELEM_WEIGHT + OBJ_WEIGHT + FIELD_WEIGHT * 2L) * 100L // Data entries
 
-  val MaxCmpWeight = 13000L
+  val MaxCmpWeight = 13000
 
   val MinTupleSize = 2
   val MaxTupleSize = 22

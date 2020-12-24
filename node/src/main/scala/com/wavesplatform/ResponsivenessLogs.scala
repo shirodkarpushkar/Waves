@@ -1,11 +1,15 @@
 package com.wavesplatform
 
+import java.io.{FileOutputStream, PrintWriter}
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 import com.wavesplatform.account.Address
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.lang.ValidationError
 import com.wavesplatform.metrics.Metrics
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction
-import com.wavesplatform.transaction.{AuthorizedTransaction, Transaction}
+import com.wavesplatform.transaction.{AuthorizedTransaction, Transaction, TxValidationError}
 import com.wavesplatform.utils.ScorexLogging
 import org.influxdb.dto.Point
 
@@ -13,7 +17,7 @@ import scala.collection.mutable
 import scala.concurrent.duration.Duration
 import scala.util.Try
 
-private class ResponsivenessLogs(metricName: String) extends ScorexLogging {
+private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends ScorexLogging {
   import ResponsivenessLogs.TxEvent
 
   //noinspection ScalaStyle
@@ -30,7 +34,7 @@ private class ResponsivenessLogs(metricName: String) extends ScorexLogging {
   )
   private[this] val stateMap = mutable.AnyRefMap.empty[ByteStr, TxState]
 
-  def writeEvent(height: Int, tx: Transaction, eventType: TxEvent, reason: Option[ValidationError] = None, retentionPolicy: String = ""): Unit =
+  def writeEvent(height: Int, tx: Transaction, eventType: TxEvent, reason: Option[ValidationError] = None, writeCsv: Boolean = false, retentionPolicy: String = ""): Unit =
     Try(synchronized {
       val reasonClass = reason match {
         case Some(value)                       => value.getClass.getSimpleName
@@ -130,16 +134,39 @@ private class ResponsivenessLogs(metricName: String) extends ScorexLogging {
         }
       }
 
-      Metrics.withRetentionPolicy(retentionPolicy)(writeMetrics())
+      def writeCsvLog(prefix: String): Unit = {
+        def escape(s: String): String = s.replaceAll("\\r", "\\\\r").replaceAll("\\n", "\\\\n")
+
+        val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val fileStream = new FileOutputStream(s"${sys.props("waves.directory")}/$prefix-events-$date.csv", true)
+        val pw         = new PrintWriter(fileStream)
+        val reasonEscaped = reason match {
+          case Some(see: TxValidationError.ScriptExecutionError)        => s"ScriptExecutionError(${escape(see.error)})"
+          case Some(_: TxValidationError.TransactionNotAllowedByScript) => "TransactionNotAllowedByScript"
+          case Some(err)                                                => escape(err.toString)
+          case None                                                     => ""
+        }
+        val txType    = tx.builder.typeId
+        val timestamp = System.currentTimeMillis()
+        val txJson    = if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""
+        val logLine   = s"${tx.id()};$eventType;$height;$txType;$timestamp;$reasonClass;$reasonEscaped;$txJson"
+        // log.info(logLine)
+        try pw.println(logLine)
+        finally pw.close()
+      }
+
+      Metrics.withRetentionPolicy("weeks2")(writeMetrics())
+      if (writeCsv) writeCsvLog(csvPrefix)
     }).failed.foreach(log.error("Error writing responsiveness metrics", _))
 }
 
 object ResponsivenessLogs {
-  var enableMetrics   = false
+  var enableMetrics = false
+  var enableCsv     = false
   var retentionPolicy = ""
 
-  private[this] val neutrino = new ResponsivenessLogs("neutrino")
-  private[this] val ordinary = new ResponsivenessLogs("blockchain-responsiveness")
+  private[this] val neutrino = new ResponsivenessLogs("neutrino", "neutrino")
+  private[this] val ordinary = new ResponsivenessLogs("tx", "blockchain-responsiveness")
 
   type TxEvent = TxEvent.Value
   object TxEvent extends Enumeration {
@@ -171,7 +198,7 @@ object ResponsivenessLogs {
   def writeEvent(height: Int, tx: Transaction, eventType: TxEvent, reason: Option[ValidationError] = None): Unit =
     if (!enableMetrics) ()
     else {
-      if (isNeutrino(tx)) neutrino.writeEvent(height, tx, eventType, reason, retentionPolicy)
-      ordinary.writeEvent(height, tx, eventType, reason, retentionPolicy)
+      if (isNeutrino(tx)) neutrino.writeEvent(height, tx, eventType, reason, enableCsv, retentionPolicy)
+      ordinary.writeEvent(height, tx, eventType, reason, enableCsv, retentionPolicy)
     }
 }

@@ -3,7 +3,6 @@ package com.wavesplatform.metrics
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
-import com.wavesplatform.ResponsivenessLogs
 import com.wavesplatform.utils.{Schedulers, ScorexLogging, Time}
 import monix.eval.Task
 import monix.execution.schedulers.SchedulerService
@@ -30,6 +29,7 @@ object Metrics extends ScorexLogging {
       nodeId: Int,
       influxDb: InfluxDbSettings,
       collectResponsivenessMetrics: Boolean,
+      createResponsivenessCsv: Boolean,
       responsivenessMetricsRetentionPolicy: String
   )
 
@@ -108,6 +108,7 @@ object Metrics extends ScorexLogging {
     }
 
     ResponsivenessLogs.enableMetrics = config.collectResponsivenessMetrics
+    ResponsivenessLogs.enableCsv = config.createResponsivenessCsv
     ResponsivenessLogs.retentionPolicy = config.responsivenessMetricsRetentionPolicy
 
     db.nonEmpty

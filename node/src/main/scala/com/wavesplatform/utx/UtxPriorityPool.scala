@@ -124,7 +124,7 @@ final class UtxPriorityPool(base: Blockchain) extends ScorexLogging with Optimis
     removed.foreach(PoolMetrics.removeTransactionPriority)
     (newTxs diff oldTxs).foreach { tx =>
       PoolMetrics.addTransactionPriority(tx)
-      ResponsivenessLogs.writeEvent(base.height, tx, "received")
+      ResponsivenessLogs.writeEvent(base.height, tx, ResponsivenessLogs.TxEvent.Received)
     }
     removed
   }

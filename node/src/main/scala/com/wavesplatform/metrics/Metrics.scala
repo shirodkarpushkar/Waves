@@ -3,6 +3,7 @@ package com.wavesplatform.metrics
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
+import com.wavesplatform.ResponsivenessLogs
 import com.wavesplatform.utils.{Schedulers, ScorexLogging, Time}
 import monix.eval.Task
 import monix.execution.schedulers.SchedulerService

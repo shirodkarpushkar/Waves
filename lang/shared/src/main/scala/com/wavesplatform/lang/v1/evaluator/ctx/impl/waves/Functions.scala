@@ -478,7 +478,7 @@ object Functions {
     UserFunction(
       f.name ++ ExtractedFuncPostfix,
       ExtractedFuncPrefix ++ f.header.toString,
-      f.costByLibVersionMap,
+      f.costByLibVersion,
       f.signature.result.asInstanceOf[UNION].typeList.find(_ != UNIT).get,
       args: _*
     ) {

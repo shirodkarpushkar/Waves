@@ -17,14 +17,10 @@ import scala.scalajs.js.annotation._
 sealed trait BaseFunction[C[_[_]]] {
   @JSExport def signature: FunctionTypeSignature
   @JSExport def header: FunctionHeader = signature.header
+  def costByLibVersion: Map[StdLibVersion, Long]
   @JSExport def name: String
   @JSExport def args: Seq[String]
   @JSExport def deprecated: Boolean = false
-
-  val costByLibVersionMap: Map[StdLibVersion, Long]
-
-  def costByLibVersion(version: StdLibVersion): Long =
-    costByLibVersionMap.getOrElse(version, costByLibVersionMap.maxBy(_._1)._2)
 }
 
 object BaseFunction {
@@ -37,7 +33,7 @@ case class FunctionTypeSignature(result: TYPE, args: Seq[(String, TYPE)], header
 @JSExportTopLevel("NativeFunction")
 case class NativeFunction[C[_[_]]](
                                     @(JSExport @field) name: String,
-                                    costByLibVersionMap: Map[StdLibVersion, Long],
+                                    costByLibVersion: Map[StdLibVersion, Long],
                                     @(JSExport @field) signature: FunctionTypeSignature,
                                     ev: ContextfulNativeFunction[C],
                                     @(JSExport @field) args: Seq[String]
@@ -51,7 +47,7 @@ object NativeFunction {
       ev: ContextfulNativeFunction[C]): NativeFunction[C] =
     new NativeFunction(
       name = name,
-      costByLibVersionMap = DirectiveDictionary[StdLibVersion].all.map(_ -> cost).toMap,
+      costByLibVersion = DirectiveDictionary[StdLibVersion].all.map(_ -> cost).toMap,
       signature = FunctionTypeSignature(result = resultType, args = args.map(a => (a._1, a._2)), header = FunctionHeader.Native(internalName)),
       ev = ev /*ev.orElse { case _ => "Passed argument with wrong type".asLeft[EVALUATED].pure[F] }(_, _)*/,
       args = args.map(_._1)
@@ -90,7 +86,7 @@ object NativeFunction {
             args: (String, TYPE, String)*)(ev: ContextfulNativeFunction[C]): NativeFunction[C] =
     new NativeFunction(
       name = name,
-      costByLibVersionMap = costByLibVersion,
+      costByLibVersion = costByLibVersion,
       signature = FunctionTypeSignature(result = resultType, args = args.map(a => (a._1, a._2)), header = FunctionHeader.Native(internalName)),
       ev = ev,
       args = args.map(_._1)
@@ -102,7 +98,7 @@ object NativeFunction {
 case class UserFunction[C[_[_]]](
                                   @(JSExport@field) name: String,
                                   @(JSExport@field) internalName: String,
-                                  costByLibVersionMap: Map[StdLibVersion, Long],
+                                  costByLibVersion: Map[StdLibVersion, Long],
                                   @(JSExport@field) signature: FunctionTypeSignature,
                                   ev: ContextfulUserFunction[C],
                                   @(JSExport@field) args: Seq[String]
@@ -146,7 +142,7 @@ object UserFunction {
     new UserFunction(
       name = name,
       internalName = internalName,
-      costByLibVersionMap = costByLibVersion,
+      costByLibVersion = costByLibVersion,
       signature = FunctionTypeSignature(result = resultType, args = args.map(a => (a._1, a._2)), header = FunctionHeader.User(internalName, name)),
       ev = ev,
       args = args.map(_._1)
@@ -173,7 +169,7 @@ object UserFunction {
     new UserFunction[C](
       name = name,
       internalName = internalName,
-      costByLibVersionMap = costByLibVersion,
+      costByLibVersion = costByLibVersion,
       signature = FunctionTypeSignature(result = resultType, args = args.map(a => (a._1, a._2)), header = FunctionHeader.User(internalName, name)),
       ContextfulUserFunction.pure[C](ev),
       args = args.map(_._1)

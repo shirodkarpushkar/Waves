@@ -34,13 +34,22 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
   )
   private[this] val stateMap = mutable.AnyRefMap.empty[ByteStr, TxState]
 
-  def writeEvent(height: Int, tx: Transaction, eventType: TxEvent, reason: Option[ValidationError] = None, writeCsv: Boolean = false, retentionPolicy: String = ""): Unit =
+  def writeEvent(
+      height: Int,
+      tx: Transaction,
+      eventType: TxEvent,
+      reason: Option[ValidationError] = None,
+      writeCsv: Boolean = false,
+      retentionPolicy: String = ""
+  ): Unit =
     Try(synchronized {
       val reasonClass = reason match {
         case Some(value)                       => value.getClass.getSimpleName
         case _ if eventType == TxEvent.Expired => "Expired"
         case _                                 => "Unknown"
       }
+
+      val isAlreadyInTheState = eventType == TxEvent.Invalidated && reasonClass != "AlreadyInTheState"
 
       def writeMetrics(): Unit = {
         def toMillis(ns: Long) = Duration.fromNanos(ns).toMillis
@@ -84,7 +93,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
                 height
               )
           }
-        } else if (eventType == TxEvent.Expired || (eventType == TxEvent.Invalidated && reasonClass != "AlreadyInTheState")) {
+        } else if (eventType == TxEvent.Expired || (eventType == TxEvent.Invalidated && !isAlreadyInTheState)) {
           stateMap.get(tx.id()).foreach {
             case st @ TxState(received, lastReceived, firstMined, _, _, _, _) =>
               val delta     = toMillis(nowNanos - received)
@@ -112,21 +121,25 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
           }
         }
 
+        def writeMinedPoint(received: Long, firstMined: Option[MetricSnapshot], mined: MetricSnapshot) = {
+          val ffDelta    = toMillis(firstMined.fold(0L)(ms => mined.nano - ms.nano))
+          val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
+          val finalPoint = mined.point
+            .addField("time-to-first-mine", firstDelta)
+            .addField("time-to-finish-after-first-mining", ffDelta)
+          log.trace(s"Writing mined responsiveness point: ${finalPoint.build()}")
+          Metrics.write(finalPoint, mined.millis)
+        }
+
         stateMap.toVector.collect {
           case (txId, TxState(received, _, firstMined, Some(mined), _, _, h)) if (h + 5) <= height =>
-            val ffDelta    = toMillis(firstMined.fold(0L)(ms => mined.nano - ms.nano))
-            val firstDelta = toMillis(firstMined.fold(0L)(ms => ms.nano - received))
-            val finalPoint = mined.point
-              .addField("time-to-first-mine", firstDelta)
-              .addField("time-to-finish-after-first-mining", ffDelta)
-            log.trace(s"Writing responsiveness point: ${finalPoint.build()}")
-            Metrics.write(finalPoint, mined.millis)
+            writeMinedPoint(received, firstMined, mined)
             stateMap -= txId
 
-          case (txId, st) if (st.height + 100) <= height && st.failed.isDefined =>
-            val Some(MetricSnapshot(point, _, millis)) = st.failed
-            log.trace(s"Writing responsiveness point: ${point.build()}")
+          case (txId, TxState(received, _, firstMined, Some(mined), Some(MetricSnapshot(point, _, millis)), _, h)) if (h + 100) <= height =>
+            log.trace(s"Writing failed responsiveness point: ${point.build()}")
             Metrics.write(point, millis)
+            writeMinedPoint(received, firstMined, mined)
             stateMap -= txId
 
           case (txId, st) if (st.height + 1000) < height =>
@@ -148,7 +161,7 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
         }
         val txType    = tx.builder.typeId
         val timestamp = System.currentTimeMillis()
-        val txJson    = if (eventType == "expired" || eventType == "invalidated") tx.json().toString() else ""
+        val txJson    = if (eventType == TxEvent.Expired || eventType == TxEvent.Invalidated) tx.json().toString() else ""
         val logLine   = s"${tx.id()};$eventType;$height;$txType;$timestamp;$reasonClass;$reasonEscaped;$txJson"
         // log.info(logLine)
         try pw.println(logLine)
@@ -156,13 +169,13 @@ private class ResponsivenessLogs(csvPrefix: String, metricName: String) extends 
       }
 
       Metrics.withRetentionPolicy(retentionPolicy)(writeMetrics())
-      if (writeCsv) writeCsvLog(csvPrefix)
+      if (writeCsv && !isAlreadyInTheState) writeCsvLog(csvPrefix)
     }).failed.foreach(log.error("Error writing responsiveness metrics", _))
 }
 
 object ResponsivenessLogs {
-  var enableMetrics = false
-  var enableCsv     = false
+  var enableMetrics   = false
+  var enableCsv       = false
   var retentionPolicy = ""
 
   private[this] val neutrino = new ResponsivenessLogs("neutrino", "neutrino")

@@ -317,7 +317,7 @@ object InvokeDiffsCommon {
     val StepInfo(_, stepFee, scriptsRun) = stepInfo(diffWithState, blockchain, invoke)
     val status                           = if (failed) ScriptExecutionFailed else Succeeded
     diffWithState |+| Diff.empty.copy(
-      portfolios = unusedFeePortfolios(dAppAddress, invoke, blockchain, stepFee),
+      portfolios = refundablePortfolios(dAppAddress, invoke, blockchain, stepFee),
       scriptsRun = scriptsRun,
       scriptsComplexity = spentComplexity,
       replacingTransactions = Seq(
@@ -359,7 +359,7 @@ object InvokeDiffsCommon {
     StepInfo(feeInWaves, feeInAttachedAsset, scriptsRun = 1 + additionalScriptsRun)
   }
 
-  def unusedFeePortfolios(
+  private def refundablePortfolios(
       dAppAddress: Address,
       invoke: InvokeScriptTransaction,
       blockchain: Blockchain,

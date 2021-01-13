@@ -12,9 +12,8 @@ import com.wavesplatform.db.WithDomain
 import com.wavesplatform.features.BlockchainFeatures
 import com.wavesplatform.lagonaki.mocks.TestBlock
 import com.wavesplatform.mining.{MultiDimensionalMiningConstraint, OneDimensionalMiningConstraint, TxEstimators}
-import com.wavesplatform.network.{InvalidBlockStorage, PeerDatabase}
 import com.wavesplatform.settings.WavesSettings
-import com.wavesplatform.state.appender.{ExtensionAppender, MicroblockAppender}
+import com.wavesplatform.state.appender.{BlockAppender, MicroblockAppender}
 import com.wavesplatform.state.diffs.ENOUGH_AMT
 import com.wavesplatform.state.{AccountScriptInfo, Blockchain, Diff, LeaseBalance, Portfolio}
 import com.wavesplatform.transaction.Asset.Waves
@@ -280,16 +279,7 @@ class UtxPriorityPoolSpecification
           (pos.validateBlockDelay _).when(*, *, *, *).returning(Right((): Unit))
           (pos.validateGenerationSignature _).when(*).returning(Right(ByteStr(new Array[Byte](32))))
 
-          val extAppender = ExtensionAppender(
-            blockchain,
-            utx,
-            pos,
-            ntpTime,
-            stub[InvalidBlockStorage],
-            stub[PeerDatabase],
-            scheduler
-          )(null, _)
-
+          val blockAppender = BlockAppender(blockchain, ntpTime, utx, pos, scheduler) _
           val microBlockAppender = MicroblockAppender(blockchain, utx, scheduler) _
 
           d.appendBlock(genBlock) shouldBe Nil
@@ -297,7 +287,7 @@ class UtxPriorityPoolSpecification
           mbs1.foreach(microBlockAppender(_).runSyncUnsafe() should beRight)
 
           mbs2.head.transactionData.foreach(utx.putIfNew(_).resultE should beRight)
-          extAppender(Seq(block2)).runSyncUnsafe() should beRight
+          blockAppender(block2).runSyncUnsafe() should beRight
           val expectedTxs1 = mbs1.last.transactionData ++ mbs2.head.transactionData.sorted(TransactionsOrdering.InUTXPool(Set()))
           utx.packUnconfirmed(MultiDimensionalMiningConstraint.unlimited, PackStrategy.Unlimited)._1 shouldBe Some(expectedTxs1)
 
@@ -308,7 +298,7 @@ class UtxPriorityPoolSpecification
             ._1
             .get shouldBe mbs1.last.transactionData
 
-          extAppender(Seq(block3)).runSyncUnsafe() should beRight
+          blockAppender(block3).runSyncUnsafe() should beRight
           utx
             .packUnconfirmed(MultiDimensionalMiningConstraint.unlimited, PackStrategy.Unlimited)
             ._1

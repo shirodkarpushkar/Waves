@@ -28,7 +28,7 @@ object ExtensionAppender extends ScorexLogging {
   )(ch: Channel, extensionBlocks: ExtensionBlocks): Task[Either[ValidationError, Option[BigInt]]] = {
     def appendExtension(extension: ExtensionBlocks): Either[ValidationError, Option[BigInt]] =
       if (extension.remoteScore <= blockchainUpdater.score) {
-        log.trace(s"Ignoring extension $extension because declared remote score is not greater than local score")
+        log.trace(s"Ignoring extension $extension because declared remote was not greater than local score ${blockchainUpdater.score}")
         Right(None)
       } else
         extension.blocks

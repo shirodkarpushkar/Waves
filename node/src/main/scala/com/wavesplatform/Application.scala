@@ -268,7 +268,7 @@ class Application(val actorSystem: ActorSystem, val settings: WavesSettings, con
       timeoutSubject
     ) {
       case (c, b) =>
-        processFork(c, b.blocks).doOnFinish {
+        processFork(c, b).doOnFinish {
           case None    => Task.now(())
           case Some(e) => Task(stopOnAppendError.reportFailure(e))
         }

@@ -1,6 +1,6 @@
 package com.wavesplatform.it.api
 
-import java.net.InetSocketAddress
+import java.net.{InetAddress, InetSocketAddress}
 
 import akka.http.scaladsl.model.StatusCodes.BadRequest
 import akka.http.scaladsl.model.{StatusCode, StatusCodes}
@@ -310,6 +310,9 @@ object SyncHttpApi extends Assertions {
     def transactionInfo[A: Reads](txId: String, amountsAsStrings: Boolean = false): A =
       sync(async(n).transactionInfo[A](txId, amountsAsStrings))
 
+    def transactionInfo[A: Reads](txIds: Seq[String]): A =
+      sync(async(n).transactionInfo[A](txIds))
+
     def transactionStatus(txIds: Seq[String]): Seq[TransactionStatus] =
       sync(async(n).transactionsStatus(txIds))
 
@@ -594,7 +597,7 @@ object SyncHttpApi extends Assertions {
     def waitForHeight(expectedHeight: Int, requestAwaitTime: FiniteDuration = RequestAwaitTime): Int =
       sync(async(n).waitForHeight(expectedHeight), requestAwaitTime)
 
-    def blacklist(address: InetSocketAddress): Unit =
+    def blacklist(address: InetAddress): Unit =
       sync(async(n).blacklist(address))
 
     def clearBlacklist(): Unit =
@@ -771,7 +774,7 @@ object SyncHttpApi extends Assertions {
     def waitForEmptyUtx(): Unit =
       waitFor("empty utx")(_.utxSize)(_.forall(_ == 0))
 
-    def rollbackWithoutBlacklisting(height: Int, returnToUTX: Boolean = true): Unit = {
+    def rollbackToHeight(height: Int, returnToUTX: Boolean = true): Unit = {
       sync(
         Future.traverse(nodes) { node =>
           com.wavesplatform.it.api.AsyncHttpApi.NodeAsyncHttpApi(node).rollback(height, returnToUTX)
@@ -780,21 +783,15 @@ object SyncHttpApi extends Assertions {
       )
     }
 
-    def rollback(height: Int, returnToUTX: Boolean = true): Unit = {
-      val combinations = nodes.combinations(2).toSeq
-      nodes.combinations(2).foreach {
-        case Seq(n1, n2) =>
-          n1.blacklist(n2.networkAddress)
-          n2.blacklist(n1.networkAddress)
+    def blacklistPeersAndRollback(height: Int, returnToUTX: Boolean = true): Unit = {
+      val HostnameRegexp = ".*/([^:]+):.+".r
+      for (n <- nodes; p <- n.connectedPeers) {
+        val HostnameRegexp(hostname) = p.address
+        n.blacklist(InetAddress.getByName(hostname))
       }
 
-      nodes.rollbackWithoutBlacklisting(height, returnToUTX)
+      nodes.rollbackToHeight(height, returnToUTX)
       nodes.foreach(_.clearBlacklist())
-
-      combinations.foreach {
-        case Seq(n1, n2) =>
-          n1.connect(n2.networkAddress)
-      }
     }
 
     def rollbackToBlockId(id: String): Unit = {

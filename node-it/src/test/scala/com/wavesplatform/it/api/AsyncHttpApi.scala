@@ -1,7 +1,7 @@
 package com.wavesplatform.it.api
 
 import java.io.IOException
-import java.net.{InetSocketAddress, URLEncoder}
+import java.net.{InetAddress, InetSocketAddress, URLEncoder}
 import java.util.concurrent.TimeoutException
 import java.util.{NoSuchElementException, UUID}
 
@@ -144,8 +144,8 @@ object AsyncHttpApi extends Assertions {
           rb.setHeader("Content-type", "application/x-www-form-urlencoded").setBody(params.map(p => p._1 + "=" + p._2).mkString("&"))
       )
 
-    def blacklist(address: InetSocketAddress): Future[Unit] =
-      post("/debug/blacklist", s"${address.getHostString}:${address.getPort}").map(_ => ())
+    def blacklist(address: InetAddress): Future[Unit] =
+      post("/debug/blacklist", s"${address.getHostName}").map(_ => ())
 
     def clearBlacklist(): Future[Unit] =
       post(s"${n.nodeApiEndpoint}/peers/clearblacklist").map(_ => ())
@@ -304,6 +304,10 @@ object AsyncHttpApi extends Assertions {
 
     def transactionInfo[A: Reads](txId: String, amountsAsStrings: Boolean = false): Future[A] = {
       get(s"/transactions/info/$txId", amountsAsStrings).as[A](amountsAsStrings)
+    }
+
+    def transactionInfo[A: Reads](txIds: Seq[String]): Future[A] = {
+      postForm("/transactions/info", txIds.map("id" -> _): _*).as[A]
     }
 
     def transactionsStatus(txIds: Seq[String]): Future[Seq[TransactionStatus]] =

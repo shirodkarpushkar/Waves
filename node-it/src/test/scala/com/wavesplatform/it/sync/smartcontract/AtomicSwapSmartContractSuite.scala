@@ -169,7 +169,7 @@ class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfter
     miner.assertBalances(BobBC1.toAddress.toString, bobBalance + transferAmount, bobEffBalance + transferAmount)
     miner.assertBalances(AliceBC1.toAddress.toString, aliceBalance, aliceEffBalance)
 
-    nodes.rollback(height, false)
+    nodes.blacklistPeersAndRollback(height, false)
 
     nodes.waitForHeight(height + 20)
 

@@ -323,7 +323,7 @@ class IssueReissueBurnAssetSuite extends BaseSuite {
 
       nodes.waitForHeightArise()
 
-      nodes.rollback(height, returnToUTX = false)
+      nodes.blacklistPeersAndRollback(height, returnToUTX = false)
 
       sender.debugStateChangesByAddress(addressStr, 100).flatMap(_.stateChanges) should matchPattern {
         case Seq(StateChangesDetails(Nil, Nil, Seq(issue), Nil, Nil, Nil, None)) if issue.name == simpleReissuableAsset.name =>

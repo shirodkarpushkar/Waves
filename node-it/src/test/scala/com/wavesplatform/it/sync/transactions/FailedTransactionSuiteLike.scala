@@ -53,8 +53,9 @@ trait FailedTransactionSuiteLike[T] extends ScorexLogging { _: Matchers =>
       all(statuses.map(_.status)) shouldBe "confirmed"
       all(statuses.map(_.applicationStatus.isDefined)) shouldBe true
 
-      statuses.foreach { s =>
-        (sender.transactionInfo[JsObject](s.id) \ "applicationStatus").asOpt[String] shouldBe s.applicationStatus
+      sender.transactionInfo[Seq[JsObject]](txs).zip(statuses).foreach { case (txo, s) =>
+        (txo \ "id").as[String] shouldBe s.id
+        (txo \ "applicationStatus").asOpt[String] shouldBe s.applicationStatus
       }
 
       val failed = statuses.dropWhile(s => s.applicationStatus.contains("succeeded"))
@@ -267,7 +268,7 @@ trait FailedTransactionSuiteLike[T] extends ScorexLogging { _: Matchers =>
   def waitForEmptyUtx(): Unit = {
     import com.wavesplatform.it.api.SyncHttpApi._
 
-    sender.waitFor("empty utx")(n => n.utxSize, (utxSize: Int) => utxSize == 0, 100.millis)
+    sender.waitFor("empty utx")(n => n.utxSize, (utxSize: Int) => utxSize == 0, 500.millis)
   }
 }
 
@@ -312,7 +313,7 @@ object FailedTransactionSuiteLike {
   val Configs: Seq[Config] =
     NodeConfigs.newBuilder
       .overrideBase(_.quorum(0))
-      .overrideBase(_.raw(s"waves.miner.max-transactions-in-micro-block = 50"))
+      .overrideBase(_.raw(s"waves.miner.max-transactions-in-micro-block = 20"))
       .withDefault(1)
       .withSpecial(_.nonMiner)
       .buildNonConflicting()

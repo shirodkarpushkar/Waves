@@ -21,7 +21,7 @@ class BlacklistTestSuite extends FreeSpec with Matchers with CancelAfterFailure 
   private def otherNodes = dockerNodes().init
 
   "primary node should blacklist other nodes" in {
-    otherNodes.foreach(n => primaryNode.blacklist(n.containerNetworkAddress))
+    otherNodes.foreach(n => primaryNode.blacklist(n.containerNetworkAddress.getAddress))
 
     val expectedBlacklistedPeers = nodes.size - 1
 

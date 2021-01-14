@@ -520,7 +520,7 @@ class SponsorFeeActionSuite extends BaseSuite {
       val invokeTx2 = miner.invokeScript(miner.keyPair, dApp, Some("sponsorAsset"), waitForTx = true, fee = smartMinFee + issueFee)
       miner.debugStateChanges(invokeTx2._1.id).stateChanges.get.sponsorFees.head.assetId shouldBe assetId
 
-      nodes.rollback(firstTxHeight, returnToUTX = false)
+      nodes.blacklistPeersAndRollback(firstTxHeight, returnToUTX = false)
       nodes.waitForHeight(miner.height + 1)
 
       miner.assetsDetails(assetId).minSponsoredAssetFee shouldBe None
@@ -540,7 +540,7 @@ class SponsorFeeActionSuite extends BaseSuite {
       val invokeTx2 = miner.invokeScript(miner.keyPair, dAppAddress, Some("sponsorAsset"), waitForTx = true, fee = smartMinFee + issueFee)
       miner.debugStateChanges(invokeTx2._1.id).stateChanges.get.sponsorFees.head.assetId shouldBe assetId
 
-      nodes.rollback(firstTxHeight, returnToUTX = true)
+      nodes.blacklistPeersAndRollback(firstTxHeight, returnToUTX = true)
       nodes.waitForTransaction(invokeTx2._1.id)
 
       miner.assetsDetails(assetId).minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)

@@ -113,7 +113,7 @@ class RewardsTestSuite
     }
     "when miner votes for decrease" in {
       docker.restartNode(dockerNodes().head, configWithDecreasedDesired)
-      if (miner.height != 1) nodes.rollback(2, false)
+      if (miner.height != 1) nodes.blacklistPeersAndRollback(2, false)
 
       miner.waitForHeight(activationHeight, 2.minutes)
       val minerBalanceAtActivationHeight = miner.balanceAtHeight(miner.address, activationHeight)

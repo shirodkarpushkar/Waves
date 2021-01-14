@@ -149,8 +149,8 @@ class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailur
 
       sender.balance(caller.toAddress.toString).balance shouldBe prevBalance - txs.size * invokeFee
 
-      failed.foreach { s =>
-        checkStateChange(sender.debugStateChanges(s.id), 1, "Crashed by dApp", strict = true)
+      sender.transactionInfo[Seq[DebugStateChanges]](failed.map(_.id)).foreach { dsc =>
+        checkStateChange(dsc, 1, "Crashed by dApp", strict = true)
       }
 
       assertApiError(
@@ -194,8 +194,8 @@ class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailur
         val text = s"Fee in WAVES for InvokeScriptTransaction ($invokeFee in WAVES)" +
           s" with $scriptInvoked total scripts invoked does not exceed minimal value of $minFee WAVES."
 
-        failed.foreach { s =>
-          checkStateChange(sender.debugStateChanges(s.id), 2, text)
+        sender.transactionInfo[Seq[DebugStateChanges]](failed.map(_.id)).foreach { dsc =>
+          checkStateChange(dsc, 2, text)
         }
 
         failed

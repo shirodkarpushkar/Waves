@@ -68,7 +68,7 @@ class Docker(suiteConfig: Config = empty, tag: String = "", enableProfiling: Boo
     close()
   }
 
-  private val genesisOverride = Docker.genesisOverride
+  private lazy val genesisOverride = Docker.genesisOverride
 
   // a random network in 10.x.x.x range
   val networkSeed = Random.nextInt(0x100000) << 4 | 0x0A000000
@@ -256,10 +256,6 @@ class Docker(suiteConfig: Config = empty, tag: String = "", enableProfiling: Boo
       val containerId = {
         val jenkinsJobIdFromEnv = sys.env.get("JENKINS_JOB_ID").fold("")(s => s"-$s")
         val containerName = s"${wavesNetwork.name()}-$nodeName$jenkinsJobIdFromEnv"
-        dumpContainers(
-          client.listContainers(DockerClient.ListContainersParam.filter("name", containerName)),
-          "Containers with same name"
-        )
 
         log.debug(s"Creating container $containerName at $ip with options: $javaOptions")
         val r = client.createContainer(containerConfig, containerName)

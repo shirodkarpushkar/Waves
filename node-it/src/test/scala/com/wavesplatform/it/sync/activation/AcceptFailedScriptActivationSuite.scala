@@ -324,7 +324,8 @@ class AcceptFailedScriptActivationSuite extends BaseTransactionSuite with NTPTim
         buyMatcherFee = smartMatcherFee,
         sellMatcherFee = smartMatcherFee,
         fee = priorityFee,
-        version = TxVersion.V3
+        version = TxVersion.V3,
+        timestamp = ts
       )
     ) { e =>
       e.id shouldBe StateCheckFailed.Id

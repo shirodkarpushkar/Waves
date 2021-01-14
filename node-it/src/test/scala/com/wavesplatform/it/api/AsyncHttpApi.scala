@@ -754,6 +754,7 @@ object AsyncHttpApi extends Assertions {
         fee: Long,
         version: Byte,
         matcherFeeAssetId: Option[String],
+        timestamp: Long = System.currentTimeMillis(),
         amountsAsStrings: Boolean = false,
         validate: Boolean = true
     ): Future[Transaction] = {
@@ -767,7 +768,7 @@ object AsyncHttpApi extends Assertions {
         sellMatcherFee = sellMatcherFee,
         fee = fee,
         proofs = Proofs.empty,
-        timestamp = System.currentTimeMillis(),
+        timestamp = timestamp,
         chainId = AddressScheme.current.chainId
       ).signWith(matcher.privateKey)
 

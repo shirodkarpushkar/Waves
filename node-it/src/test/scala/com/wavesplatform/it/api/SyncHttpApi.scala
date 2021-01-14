@@ -409,6 +409,7 @@ object SyncHttpApi extends Assertions {
         fee: Long,
         version: Byte = 2,
         matcherFeeAssetId: Option[String] = None,
+        timestamp: Long = System.currentTimeMillis(),
         waitForTx: Boolean = false,
         amountsAsStrings: Boolean = false,
         validate: Boolean = true
@@ -426,6 +427,7 @@ object SyncHttpApi extends Assertions {
             fee,
             version,
             matcherFeeAssetId,
+            timestamp,
             amountsAsStrings,
             validate
           )
@@ -791,7 +793,11 @@ object SyncHttpApi extends Assertions {
       }
 
       nodes.rollbackToHeight(height, returnToUTX)
-      nodes.foreach(_.clearBlacklist())
+      nodes.foreach { n =>
+        n.clearBlacklist()
+        n.settings.networkSettings.knownPeers
+          .foreach(a => n.connect(com.wavesplatform.network.inetSocketAddress(a, n.settings.networkSettings.bindAddress.getPort)))
+      }
     }
 
     def rollbackToBlockId(id: String): Unit = {

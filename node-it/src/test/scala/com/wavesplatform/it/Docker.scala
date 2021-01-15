@@ -33,15 +33,20 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.io.IOUtils
 import org.asynchttpclient.Dsl._
 
-import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, blocking}
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 import scala.util.{Random, Try}
 
-class Docker(suiteConfig: Config = empty, tag: String = "", enableProfiling: Boolean = false, imageName: String = Docker.NodeImageName)
-    extends AutoCloseable
+class Docker(
+    nodeConfigs: Seq[Config],
+    suiteConfig: Config = empty,
+    tag: String = "",
+    enableProfiling: Boolean = false,
+    imageName: String = Docker.NodeImageName
+) extends AutoCloseable
     with ScorexLogging {
 
   import Docker._
@@ -68,7 +73,9 @@ class Docker(suiteConfig: Config = empty, tag: String = "", enableProfiling: Boo
     close()
   }
 
-  private lazy val genesisOverride = Docker.genesisOverride
+  private lazy val genesisOverride = Docker.genesisOverride(nodeConfigs.collect {
+    case cfg if cfg.getOrElse("waves.miner.enable", true) => cfg.getString("address")
+  })
 
   // a random network in 10.x.x.x range
   val networkSeed = Random.nextInt(0x100000) << 4 | 0x0A000000
@@ -198,6 +205,8 @@ class Docker(suiteConfig: Config = empty, tag: String = "", enableProfiling: Boo
   private def startNodeInternal(nodeConfig: Config, autoConnect: Boolean = true): DockerNode =
     try {
       val nodeName = nodeConfig.getString("waves.network.node-name")
+      val networkingConfig = ContainerConfig.NetworkingConfig.create(Map(wavesNetwork.name() -> endpointConfigFor(nodeName)).asJava)
+
       val peersOverrides = if (autoConnect) {
         val otherAddrs = peersFor(nodeName)
 
@@ -248,14 +257,14 @@ class Docker(suiteConfig: Config = empty, tag: String = "", enableProfiling: Boo
       val containerConfig = ContainerConfig
         .builder()
         .image(imageName)
-        .networkingConfig(ContainerConfig.NetworkingConfig.create(Map(wavesNetwork.name() -> endpointConfigFor(nodeName)).asJava))
+        .networkingConfig(networkingConfig)
         .hostConfig(hostConfig)
         .env(s"WAVES_OPTS=$configOverrides")
         .build()
 
       val containerId = {
         val jenkinsJobIdFromEnv = sys.env.get("JENKINS_JOB_ID").fold("")(s => s"-$s")
-        val containerName = s"${wavesNetwork.name()}-$nodeName$jenkinsJobIdFromEnv"
+        val containerName       = s"${wavesNetwork.name()}-$nodeName$jenkinsJobIdFromEnv"
 
         log.debug(s"Creating container $containerName at $ip with options: $javaOptions")
         val r = client.createContainer(containerConfig, containerName)
@@ -530,27 +539,33 @@ object Docker {
   private val propsMapper = new JavaPropsMapper
 
   val configTemplate: Config = parseResources("template.conf")
-  def genesisOverride: Config = {
-    val genesisTs = System.currentTimeMillis()
-
+  def genesisOverride(minerAddresses: Seq[String]): Config = {
+    val genesisTs          = System.currentTimeMillis()
     val timestampOverrides = parseString(s"""waves.blockchain.custom.genesis {
                                             |  timestamp = $genesisTs
                                             |  block-timestamp = $genesisTs
-                                            |  signature = null # To calculate it in Block.genesis
                                             |}""".stripMargin)
+    val baseTargetOverrides =
+      if (minerAddresses.isEmpty) empty()
+      else {
+//      parseString(s"waves.blockchain.custom.genesis.initial-base-target = $adjustedBaseTarget")
+        empty()
+      }
 
     val genesisConfig    = timestampOverrides.withFallback(configTemplate)
     val gs               = genesisConfig.as[GenesisSettings]("waves.blockchain.custom.genesis")
     val genesisSignature = Block.genesis(gs).explicitGet().id()
 
-    parseString(s"waves.blockchain.custom.genesis.signature = $genesisSignature").withFallback(timestampOverrides)
+    baseTargetOverrides
+      .withFallback(parseString(s"waves.blockchain.custom.genesis.signature = $genesisSignature"))
+      .withFallback(timestampOverrides)
   }
 
   AddressScheme.current = new AddressScheme {
     override val chainId: Byte = configTemplate.as[String]("waves.blockchain.custom.address-scheme-character").charAt(0).toByte
   }
 
-  def apply(owner: Class[_]): Docker = new Docker(tag = owner.getSimpleName)
+  def apply(owner: Class[_], nodeConfigs: Seq[Config]): Docker = new Docker(nodeConfigs, tag = owner.getSimpleName)
 
   private def asProperties(config: Config): Properties = {
     val jsonConfig = config.root().render(ConfigRenderOptions.concise())

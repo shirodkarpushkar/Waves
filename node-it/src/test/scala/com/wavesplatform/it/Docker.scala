@@ -6,7 +6,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Collections._
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.{Properties, List => JList, Map => JMap}
 
@@ -18,8 +18,9 @@ import com.spotify.docker.client.messages._
 import com.spotify.docker.client.{DefaultDockerClient, DockerClient}
 import com.typesafe.config.ConfigFactory._
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
-import com.wavesplatform.account.AddressScheme
+import com.wavesplatform.account.{AddressScheme, KeyPair}
 import com.wavesplatform.block.Block
+import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
 import com.wavesplatform.it.api.AsyncHttpApi._
 import com.wavesplatform.it.util.GlobalTimer.{instance => timer}
@@ -33,6 +34,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.io.IOUtils
 import org.asynchttpclient.Dsl._
 
+import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, blocking}
@@ -73,12 +75,19 @@ class Docker(
     close()
   }
 
-  private lazy val genesisOverride = Docker.genesisOverride(nodeConfigs.collect {
-    case cfg if cfg.getOrElse("waves.miner.enable", true) => cfg.getString("address")
-  })
+  private lazy val genesisOverride =
+    Docker.genesisOverride(nodeConfigs.collect {
+      case cfg if cfg.getOrElse("waves.miner.enable", true) =>
+        cfg
+          .withFallback(suiteConfig)
+          .withFallback(configTemplate)
+          .withFallback(defaultApplication())
+          .withFallback(defaultReference())
+          .resolve()
+    })
 
   // a random network in 10.x.x.x range
-  val networkSeed = Random.nextInt(0x100000) << 4 | 0x0A000000
+  private val networkSeed = Random.nextInt(0x100000) << 4 | 0x0A000000
   // 10.x.x.x/28 network will accommodate up to 13 nodes
   private val networkPrefix = s"${InetAddress.getByAddress(toByteArray(networkSeed)).getHostAddress}/28"
 
@@ -204,7 +213,7 @@ class Docker(
 
   private def startNodeInternal(nodeConfig: Config, autoConnect: Boolean = true): DockerNode =
     try {
-      val nodeName = nodeConfig.getString("waves.network.node-name")
+      val nodeName         = nodeConfig.getString("waves.network.node-name")
       val networkingConfig = ContainerConfig.NetworkingConfig.create(Map(wavesNetwork.name() -> endpointConfigFor(nodeName)).asJava)
 
       val peersOverrides = if (autoConnect) {
@@ -295,6 +304,7 @@ class Docker(
     NodeInfo(restApiPort, networkPort, wavesIpAddress, containerInfo.networkSettings().ports())
   }
 
+  @tailrec
   private def inspectContainer(containerId: String): ContainerInfo = {
     val containerInfo = client.inspectContainer(containerId)
     if (containerInfo.networkSettings().networks().asScala.contains(wavesNetwork.name())) containerInfo
@@ -539,26 +549,37 @@ object Docker {
   private val propsMapper = new JavaPropsMapper
 
   val configTemplate: Config = parseResources("template.conf")
-  def genesisOverride(minerAddresses: Seq[String]): Config = {
+  def genesisOverride(minerConfigs: Seq[Config]): Config = {
     val genesisTs          = System.currentTimeMillis()
     val timestampOverrides = parseString(s"""waves.blockchain.custom.genesis {
                                             |  timestamp = $genesisTs
                                             |  block-timestamp = $genesisTs
                                             |}""".stripMargin)
+
     val baseTargetOverrides =
-      if (minerAddresses.isEmpty) empty()
+      if (minerConfigs.isEmpty) empty()
       else {
-//      parseString(s"waves.blockchain.custom.genesis.initial-base-target = $adjustedBaseTarget")
-        empty()
+        parseString(s"waves.blockchain.custom.genesis.initial-base-target = ${(for {
+          minerConfig <- minerConfigs
+          balance <- minerConfig
+            .getConfigList("waves.blockchain.custom.genesis.transactions")
+            .asScala
+            .find(_.getString("recipient") == minerConfig.getString("address"))
+        } yield com.wavesplatform.consensus.calculateInitialBaseTarget(
+          KeyPair(ByteStr.decodeBase58(minerConfig.getString("account-seed")).get),
+          balance.getLong("amount"),
+          minerConfig.getAs[FunctionalitySettings]("waves.blockchain.custom.functionality").get,
+          minerConfig.getDuration("waves.blockchain.custom.genesis.average-block-delay", TimeUnit.MILLISECONDS)
+        )).max}")
       }
 
-    val genesisConfig    = timestampOverrides.withFallback(configTemplate)
+    val baseGenesisSettings = timestampOverrides.withFallback(baseTargetOverrides)
+    val genesisConfig    = baseGenesisSettings.withFallback(configTemplate)
     val gs               = genesisConfig.as[GenesisSettings]("waves.blockchain.custom.genesis")
     val genesisSignature = Block.genesis(gs).explicitGet().id()
 
-    baseTargetOverrides
-      .withFallback(parseString(s"waves.blockchain.custom.genesis.signature = $genesisSignature"))
-      .withFallback(timestampOverrides)
+    parseString(s"waves.blockchain.custom.genesis.signature = $genesisSignature")
+      .withFallback(baseGenesisSettings)
   }
 
   AddressScheme.current = new AddressScheme {

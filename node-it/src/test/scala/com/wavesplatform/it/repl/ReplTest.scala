@@ -28,7 +28,7 @@ class ReplTest extends BaseTransactionSuite with FailedTransactionSuiteLike[Stri
   override def nodeConfigs: Seq[Config] =
     com.wavesplatform.it.NodeConfigs.newBuilder
       .overrideBase(_.quorum(0))
-      .overrideBase(_.preactivatedFeatures(BlockchainFeatures.BlockV5.id.toInt -> 0))
+      .overrideBase(_.preactivatedFeatures(BlockchainFeatures.BlockV5 -> 0))
       .withDefault(1)
       .buildNonConflicting()
 

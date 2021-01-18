@@ -48,20 +48,22 @@ class SmartTransactionsConstraintsSuite extends FreeSpec with Matchers with Tran
     .withDefault(1)
     .build(false)
 
-  private def miner                   = nodes.head
+  private def miner            = nodes.head
   private val smartPrivateKey  = KeyPair.fromSeed(NodeConfigs.Default(1).getString("account-seed")).explicitGet()
   private val simplePrivateKey = KeyPair.fromSeed(NodeConfigs.Default(2).getString("account-seed")).explicitGet()
 
   s"Block is limited by size after activation" in result(
     for {
-      _ <- miner.signedBroadcast(Json.toJsObject(toRequest(setScriptTx(smartPrivateKey))) + ("type" -> JsNumber(13)))
-      _ <- processRequests(generateTransfersFromAccount(MaxScriptRunsInBlock * 3, smartPrivateKey.toAddress.toString))
-      _ <- miner.waitForHeight(5)
-      _ <- processRequests(generateTransfersFromAccount(MaxScriptRunsInBlock * 3, smartPrivateKey.toAddress.toString))
-      _ <- scala.concurrent.Future.sequence((0 to 9).map(_ =>
-        processRequests(generateTransfersFromAccount((50 - MaxScriptRunsInBlock / 10), simplePrivateKey.toAddress.toString))))
+      tx <- miner.signedBroadcast(Json.toJsObject(toRequest(setScriptTx(smartPrivateKey))) + ("type" -> JsNumber(13)))
+      ti <- miner.waitForTransaction(tx.id)
+      _  <- processRequests(generateTransfersFromAccount(MaxScriptRunsInBlock * 3, smartPrivateKey.toAddress.toString))
+      _  <- miner.waitForHeight(5)
+      _  <- processRequests(generateTransfersFromAccount(MaxScriptRunsInBlock * 3, smartPrivateKey.toAddress.toString))
+      _ <- scala.concurrent.Future.sequence(
+        (0 to 9).map(_ => processRequests(generateTransfersFromAccount((50 - MaxScriptRunsInBlock / 10), simplePrivateKey.toAddress.toString)))
+      )
       _                  <- miner.waitForHeight(6)
-      blockWithSetScript <- miner.blockHeadersAt(2)
+      blockWithSetScript <- miner.blockHeadersAt(ti.height)
       restBlocks         <- miner.blockHeadersSeq(3, 4)
       newBlock           <- miner.blockHeadersAt(5)
     } yield {
@@ -76,7 +78,13 @@ class SmartTransactionsConstraintsSuite extends FreeSpec with Matchers with Tran
 
   private def setScriptTx(sender: KeyPair) =
     SetScriptTransaction
-      .selfSigned(1.toByte, sender = sender, script = Some(ExprScript(V1, Terms.TRUE, checkSize = false).explicitGet()), fee = 1000000, timestamp = System.currentTimeMillis() - 5.minutes.toMillis)
+      .selfSigned(
+        1.toByte,
+        sender = sender,
+        script = Some(ExprScript(V1, Terms.TRUE, checkSize = false).explicitGet()),
+        fee = 1000000,
+        timestamp = System.currentTimeMillis() - 5.minutes.toMillis
+      )
       .explicitGet()
 
   private def toRequest(tx: SetScriptTransaction): SignedSetScriptRequest = SignedSetScriptRequest(

@@ -486,7 +486,7 @@ object AcceptFailedScriptActivationSuite {
       .overrideBase(_.quorum(0))
       .overrideBase(
         _.preactivatedFeatures(
-          (BlockchainFeatures.BlockV5.id, ActivationHeight)
+          (BlockchainFeatures.BlockV5, ActivationHeight)
         )
       )
       .overrideBase(_.raw(s"waves.blockchain.custom.functionality.min-asset-info-update-interval = $UpdateInterval"))

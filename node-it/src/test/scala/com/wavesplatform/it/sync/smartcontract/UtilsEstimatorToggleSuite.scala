@@ -19,8 +19,8 @@ class UtilsEstimatorToggleSuite extends BaseTransactionSuite with CancelAfterFai
       .overrideBase(_.quorum(0))
       .overrideBase(
         _.preactivatedFeatures(
-          (BlockchainFeatures.BlockReward.id, estimatorV2ActivationHeight),
-          (BlockchainFeatures.BlockV5.id, estimatorV3ActivationHeight)
+          (BlockchainFeatures.BlockReward, estimatorV2ActivationHeight),
+          (BlockchainFeatures.BlockV5, estimatorV3ActivationHeight)
         )
       )
       .withDefault(1)

@@ -90,6 +90,8 @@ class UpdateAssetInfoTransactionSuite extends BaseTransactionSuite with CancelAf
     sender.setScript(dApp, Some(script), waitForTx = true)
   }
 
+  var firstUpdateTxId = ""
+
   test("DApp can read asset info") {
     sender.invokeScript(
       issuer,
@@ -140,26 +142,27 @@ class UpdateAssetInfoTransactionSuite extends BaseTransactionSuite with CancelAf
     val nextTerm = sender.transactionInfo[TransactionInfo](assetId).height + updateInterval + 1
     nodes.waitForHeight(nextTerm)
     val issuerBalance       = sender.balanceDetails(issuer.publicKey.toAddress.toString)
-    val updateAssetInfoTxId = notMiner.updateAssetInfo(issuer, assetId, "updatedName", "updatedDescription", minFee)._1.id
+    firstUpdateTxId = notMiner.updateAssetInfo(issuer, assetId, "updatedName", "updatedDescription", minFee)._1.id
     checkUpdateAssetInfoTx(notMiner.utx().head, "updatedName", "updatedDescription")
-    miner.waitForTransaction(updateAssetInfoTxId)
-    val updateAssetInfoTxHeight = sender.transactionInfo[TransactionInfo](updateAssetInfoTxId).height
-    checkUpdateAssetInfoTx(sender.blockAt(updateAssetInfoTxHeight).transactions.head, "updatedName", "updatedDescription")
+
+    val updateAssetInfoTxInfo = miner.waitForTransaction(firstUpdateTxId)
+    val updateAssetInfoHeight = updateAssetInfoTxInfo.height
+    checkUpdateAssetInfoTx(sender.blockAt(updateAssetInfoHeight).transactions.head, "updatedName", "updatedDescription")
     checkUpdateAssetInfoTx(sender.lastBlock().transactions.head, "updatedName", "updatedDescription")
     checkUpdateAssetInfoTx(
-      sender.blockSeq(updateAssetInfoTxHeight, updateAssetInfoTxHeight).head.transactions.head,
+      sender.blockSeq(updateAssetInfoHeight, updateAssetInfoHeight).head.transactions.head,
       "updatedName",
       "updatedDescription"
     )
     checkUpdateAssetInfoTx(sender.blockById(sender.lastBlock().id).transactions.head, "updatedName", "updatedDescription")
     checkUpdateAssetInfoTx(
-      sender.blockSeqByAddress(miner.address, updateAssetInfoTxHeight, updateAssetInfoTxHeight).head.transactions.head,
+      sender.blockSeqByAddress(miner.address, updateAssetInfoHeight, updateAssetInfoHeight).head.transactions.head,
       "updatedName",
       "updatedDescription"
     )
 
     checkUpdateAssetInfoTxInfo(sender.transactionsByAddress(issuer.publicKey.toAddress.toString, 1).head, "updatedName", "updatedDescription")
-    checkUpdateAssetInfoTxInfo(sender.transactionInfo[TransactionInfo](updateAssetInfoTxId), "updatedName", "updatedDescription")
+    checkUpdateAssetInfoTxInfo(updateAssetInfoTxInfo, "updatedName", "updatedDescription")
 
     sender.assetsDetails(assetId).name shouldBe "updatedName"
     sender.assetsDetails(assetId).description shouldBe "updatedDescription"
@@ -191,7 +194,7 @@ class UpdateAssetInfoTransactionSuite extends BaseTransactionSuite with CancelAf
   }
 
   test("not able to update name/description more than once within interval") {
-    val nextTermEnd = sender.transactionInfo[TransactionInfo](assetId).height + 2 * updateInterval
+    val nextTermEnd = sender.waitForTransaction(firstUpdateTxId).height + updateInterval
     assertApiError(sender.updateAssetInfo(issuer, assetId, "updatedName", "updatedDescription", minFee)) { error =>
       error.id shouldBe StateCheckFailed.Id
       error.message should include(
@@ -446,8 +449,7 @@ object UpdateAssetInfoTransactionSuite {
 
   private def configWithUpdateIntervalSetting(interval: Long) =
     ConfigFactory.parseString(
-      s"""
-         |waves {
+      s"""waves {
          |   blockchain.custom {
          |      functionality {
          |        min-asset-info-update-interval = $interval

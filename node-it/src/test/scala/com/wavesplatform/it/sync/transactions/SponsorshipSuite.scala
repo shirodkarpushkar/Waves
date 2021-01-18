@@ -3,6 +3,8 @@ package com.wavesplatform.it.sync.transactions
 import com.typesafe.config.Config
 import com.wavesplatform.account.AddressScheme
 import com.wavesplatform.common.state.ByteStr
+import com.wavesplatform.common.utils.EitherExt2
+import com.wavesplatform.features.BlockchainFeatures
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.api.TransactionInfo
 import com.wavesplatform.it.sync._
@@ -14,7 +16,6 @@ import com.wavesplatform.transaction.Asset.IssuedAsset
 import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.assets.SponsorFeeTransaction
 import org.scalatest.{Assertion, FreeSpec, Matchers}
-import com.wavesplatform.common.utils.EitherExt2
 
 import scala.concurrent.duration._
 
@@ -29,7 +30,7 @@ class SponsorshipSuite
   override def nodeConfigs: Seq[Config] =
     NodeConfigs.newBuilder
       .overrideBase(_.quorum(0))
-      .overrideBase(_.preactivatedFeatures((14, 1000000)))
+      .overrideBase(_.preactivatedFeatures((BlockchainFeatures.BlockReward, 1000000)))
       .overrideBase(_.raw("waves.blockchain.custom.functionality.blocks-for-feature-activation=1"))
       .overrideBase(_.raw("waves.blockchain.custom.functionality.feature-check-blocks-period=1"))
       .withDefault(1)

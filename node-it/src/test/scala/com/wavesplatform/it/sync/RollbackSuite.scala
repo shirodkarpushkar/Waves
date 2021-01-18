@@ -3,6 +3,7 @@ package com.wavesplatform.it.sync
 import com.typesafe.config.Config
 import com.wavesplatform.account.KeyPair
 import com.wavesplatform.common.utils.EitherExt2
+import com.wavesplatform.features.BlockchainFeatures
 import com.wavesplatform.it._
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.transactions.NodesFromDocker
@@ -30,7 +31,7 @@ class RollbackSuite
   override def nodeConfigs: Seq[Config] =
     NodeConfigs.newBuilder
       .overrideBase(_.quorum(0))
-      .overrideBase(_.preactivatedFeatures((14, 1000000)))
+      .overrideBase(_.preactivatedFeatures((BlockchainFeatures.BlockReward, 1000000)))
       .withDefault(1)
       .withSpecial(1, _.nonMiner)
       .buildNonConflicting()

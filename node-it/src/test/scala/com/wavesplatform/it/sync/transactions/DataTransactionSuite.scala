@@ -6,6 +6,7 @@ import com.wavesplatform.account.{AddressScheme, KeyPair}
 import com.wavesplatform.api.http.ApiError.{CustomValidationError, TooBigArrayAllocation}
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.{Base58, EitherExt2}
+import com.wavesplatform.features.{BlockchainFeature, BlockchainFeatures}
 import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.api.{TransactionInfo, UnexpectedStatusCodeException}
@@ -26,7 +27,7 @@ class DataTransactionSuite extends BaseTransactionSuite with EitherValues {
       .overrideBase(_.quorum(0))
       .overrideBase(_.raw("waves.blockchain.custom.functionality.blocks-for-feature-activation = 1"))
       .overrideBase(_.raw("waves.blockchain.custom.functionality.feature-check-blocks-period = 1"))
-      .overrideBase(_.preactivatedFeatures(15 -> 0))
+      .overrideBase(_.preactivatedFeatures(BlockchainFeatures.BlockV5 -> 0))
       .withDefault(1)
       .withSpecial(1, _.nonMiner)
       .buildNonConflicting()

@@ -24,7 +24,7 @@ class VRFProtobufActivationSuite extends BaseTransactionSuite {
     NodeConfigs
       .Builder(Default, 1, Seq.empty)
       .overrideBase(_.quorum(0))
-      .overrideBase(_.preactivatedFeatures((BlockchainFeatures.BlockV5.id, activationHeight)))
+      .overrideBase(_.preactivatedFeatures((BlockchainFeatures.BlockV5, activationHeight)))
       .overrideBase(_.raw(s"waves.blockchain.custom.functionality.min-asset-info-update-interval = $updateInterval"))
       .buildNonConflicting()
 

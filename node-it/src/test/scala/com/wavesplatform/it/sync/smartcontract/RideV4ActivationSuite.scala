@@ -25,7 +25,7 @@ class RideV4ActivationSuite extends BaseTransactionSuite with CancelAfterFailure
   override protected def nodeConfigs: Seq[Config] =
     NodeConfigs.Builder(Default, 1, Seq.empty)
       .overrideBase(_.quorum(0))
-      .overrideBase(_.preactivatedFeatures((BlockchainFeatures.BlockV5.id, activationHeight - 1)))
+      .overrideBase(_.preactivatedFeatures((BlockchainFeatures.BlockV5, activationHeight - 1)))
       .buildNonConflicting()
 
   private def smartAccV4  = firstKeyPair

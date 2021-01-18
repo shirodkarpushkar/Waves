@@ -32,8 +32,8 @@ class InvokeScriptTransactionSuite extends BaseTransactionSuite with CancelAfter
       .overrideBase(_.quorum(0))
       .overrideBase(
         _.preactivatedFeatures(
-          (BlockchainFeatures.Ride4DApps.id, 0),
-          (BlockchainFeatures.BlockV5.id, activationHeight)
+          (BlockchainFeatures.Ride4DApps, 0),
+          (BlockchainFeatures.BlockV5, activationHeight)
         )
       )
       .withDefault(1)

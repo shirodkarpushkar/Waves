@@ -3,6 +3,7 @@ package com.wavesplatform.it.sync.smartcontract
 import com.typesafe.config.Config
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
+import com.wavesplatform.features.BlockchainFeatures
 import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.NodeConfigs.Default
 import com.wavesplatform.it.api.Block
@@ -19,8 +20,12 @@ class RideBlockInfoSuite extends BaseTransactionSuite {
     NodeConfigs
       .Builder(Default, 1, Seq.empty)
       .overrideBase(_.quorum(0))
-      .overrideBase(_.preactivatedFeatures((14, 2)))
-      .overrideBase(_.preactivatedFeatures((15, activationHeight)))
+      .overrideBase(
+        _.preactivatedFeatures(
+          (BlockchainFeatures.BlockReward, 2),
+          (BlockchainFeatures.BlockV5, activationHeight)
+        )
+      )
       .buildNonConflicting()
 
   private val dAppScriptV4 =

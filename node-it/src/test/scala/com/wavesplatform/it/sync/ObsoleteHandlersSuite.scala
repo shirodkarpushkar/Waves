@@ -29,7 +29,7 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
   override protected def nodeConfigs: Seq[Config] =
     NodeConfigs.newBuilder
       .overrideBase(_.quorum(0))
-      .overrideBase(_.preactivatedFeatures(BlockchainFeatures.BlockV5.id.toInt -> 0))
+      .overrideBase(_.preactivatedFeatures(BlockchainFeatures.BlockV5 -> 0))
       .withDefault(1)
       .withSpecial(_.nonMiner)
       .buildNonConflicting()

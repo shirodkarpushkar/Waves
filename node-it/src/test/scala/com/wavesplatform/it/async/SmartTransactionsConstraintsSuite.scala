@@ -2,7 +2,6 @@ package com.wavesplatform.it.async
 
 import com.typesafe.config.Config
 import com.wavesplatform.account.KeyPair
-import com.wavesplatform.api.http.requests.SignedSetScriptRequest
 import com.wavesplatform.common.utils.EitherExt2
 import com.wavesplatform.it.api.AsyncHttpApi._
 import com.wavesplatform.it.transactions.NodesFromDocker
@@ -11,10 +10,8 @@ import com.wavesplatform.lang.directives.values.V1
 import com.wavesplatform.lang.script.v1.ExprScript
 import com.wavesplatform.lang.v1.compiler.Terms
 import com.wavesplatform.mining.MiningConstraints.MaxScriptRunsInBlock
-import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.smart.SetScriptTransaction
 import org.scalatest._
-import play.api.libs.json.{JsNumber, Json}
 
 import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,9 +33,9 @@ class SmartTransactionsConstraintsSuite extends FreeSpec with Matchers with Tran
          |  blockchain.custom {
          |    functionality {
          |      pre-activated-features {
-         |        2: 0
-         |        4: 0
-         |        11: 100500
+         |        2 = 0
+         |        4 = 0
+         |        11 = 100500
          |      }
          |    }
          |  }
@@ -54,22 +51,17 @@ class SmartTransactionsConstraintsSuite extends FreeSpec with Matchers with Tran
 
   s"Block is limited by size after activation" in result(
     for {
-      tx <- miner.signedBroadcast(Json.toJsObject(toRequest(setScriptTx(smartPrivateKey))) + ("type" -> JsNumber(13)))
-      ti <- miner.waitForTransaction(tx.id)
-      _  <- processRequests(generateTransfersFromAccount(MaxScriptRunsInBlock * 3, smartPrivateKey.toAddress.toString))
-      _  <- miner.waitForHeight(5)
-      _  <- processRequests(generateTransfersFromAccount(MaxScriptRunsInBlock * 3, smartPrivateKey.toAddress.toString))
-      _ <- scala.concurrent.Future.sequence(
-        (0 to 9).map(_ => processRequests(generateTransfersFromAccount((50 - MaxScriptRunsInBlock / 10), simplePrivateKey.toAddress.toString)))
-      )
-      _                  <- miner.waitForHeight(6)
-      blockWithSetScript <- miner.blockHeadersAt(ti.height)
-      restBlocks         <- miner.blockHeadersSeq(3, 4)
-      newBlock           <- miner.blockHeadersAt(5)
+      tx          <- miner.signedBroadcast(setScriptTx(smartPrivateKey).json())
+      ti          <- miner.waitForTransaction(tx.id)
+      firstHeight <- miner.waitForHeightArise
+      _           <- processRequests(generateTransfersFromAccount(MaxScriptRunsInBlock * 3, smartPrivateKey.toAddress.toString))
+      _           <- miner.waitForEmptyUtx()
+      lastHeight  <- miner.waitForHeightArise
+      headers     <- miner.blockHeadersSeq(firstHeight, lastHeight)
+      newBlock    <- miner.blockHeadersAt(lastHeight)
     } yield {
-      blockWithSetScript.transactionCount should (be <= (MaxScriptRunsInBlock + 1) and be >= 1)
-      restBlocks.foreach { x =>
-        x.transactionCount should be(MaxScriptRunsInBlock)
+      headers.foreach { x =>
+        x.transactionCount should (be <= (MaxScriptRunsInBlock + 1) and be >= 1)
       }
       newBlock.transactionCount should be > MaxScriptRunsInBlock
     },
@@ -86,14 +78,4 @@ class SmartTransactionsConstraintsSuite extends FreeSpec with Matchers with Tran
         timestamp = System.currentTimeMillis() - 5.minutes.toMillis
       )
       .explicitGet()
-
-  private def toRequest(tx: SetScriptTransaction): SignedSetScriptRequest = SignedSetScriptRequest(
-    version = Some(TxVersion.V1),
-    senderPublicKey = tx.sender.toString,
-    script = tx.script.map(_.bytes().base64),
-    fee = tx.fee,
-    timestamp = tx.timestamp,
-    proofs = tx.proofs
-  )
-
 }

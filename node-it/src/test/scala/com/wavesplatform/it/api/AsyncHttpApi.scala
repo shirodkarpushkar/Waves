@@ -298,6 +298,8 @@ object AsyncHttpApi extends Assertions {
       100.millis
     )
 
+    def waitForEmptyUtx(): Future[Unit] = waitFor[Int]("empty utx")(_.utxSize, _ == 0, 1.second).map(_ => ())
+
     def waitForHeight(expectedHeight: Int): Future[Int] = waitFor[Int](s"height >= $expectedHeight")(_.height, h => h >= expectedHeight, 2.seconds)
 
     def rawTransactionInfo(txId: String): Future[JsValue] = get(s"/transactions/info/$txId").map(r => Json.parse(r.getResponseBody))

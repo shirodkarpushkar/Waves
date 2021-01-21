@@ -649,7 +649,7 @@ object SyncHttpApi extends Assertions {
       sync(async(n).waitFor[A](desc)(x => Future.successful(f(x.n)), cond, retryInterval), 5.minutes)
 
     def waitForEmptyUtx(): Unit =
-      sync(async(n).waitFor("empty utx")(_.utxSize, (_: Int) == 0, 1 second), 5 minutes)
+      sync(async(n).waitForEmptyUtx())
 
     def waitForBlackList(blackList: Int): Seq[BlacklistedPeer] =
       sync(async(n).waitForBlackList(blackList))

@@ -45,25 +45,19 @@ class SmartTransactionsConstraintsSuite extends FreeSpec with Matchers with Tran
     .withDefault(1)
     .build(false)
 
-  private def miner            = nodes.head
-  private val smartPrivateKey  = KeyPair.fromSeed(NodeConfigs.Default(1).getString("account-seed")).explicitGet()
-  private val simplePrivateKey = KeyPair.fromSeed(NodeConfigs.Default(2).getString("account-seed")).explicitGet()
+  private def miner           = nodes.head
+  private val smartPrivateKey = KeyPair.fromSeed(NodeConfigs.Default(1).getString("account-seed")).explicitGet()
 
   s"Block is limited by size after activation" in result(
     for {
-      tx          <- miner.signedBroadcast(setScriptTx(smartPrivateKey).json())
-      ti          <- miner.waitForTransaction(tx.id)
+      _          <- miner.signedBroadcast(setScriptTx(smartPrivateKey).json())
       firstHeight <- miner.waitForHeightArise
       _           <- processRequests(generateTransfersFromAccount(MaxScriptRunsInBlock * 3, smartPrivateKey.toAddress.toString))
       _           <- miner.waitForEmptyUtx()
       lastHeight  <- miner.waitForHeightArise
       headers     <- miner.blockHeadersSeq(firstHeight, lastHeight)
-      newBlock    <- miner.blockHeadersAt(lastHeight)
-    } yield {
-      headers.foreach { x =>
-        x.transactionCount should (be <= (MaxScriptRunsInBlock + 1) and be >= 1)
-      }
-      newBlock.transactionCount should be > MaxScriptRunsInBlock
+    } yield headers.foreach { x =>
+      x.transactionCount should (be <= MaxScriptRunsInBlock)
     },
     12.minutes
   )

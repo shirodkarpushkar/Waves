@@ -104,16 +104,16 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
   }
 
   test("leasing lease and cancel") {
-    val (balance1, eff1) = miner.accountBalances(firstAddress)
-    val (balance2, eff2) = miner.accountBalances(secondAddress)
+    val bd1 = miner.balanceDetails(firstAddress)
+    val bd2 = miner.balanceDetails(secondAddress)
 
     val leaseJson =
       sender.postJson("/leasing/lease", LeaseRequest(None, Some(firstAddress), None, secondAddress, leasingAmount, minFee, None, None, None))
     val leaseId = Json.parse(leaseJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(leaseId)
 
-    miner.assertBalances(firstAddress, balance1 - minFee, eff1 - leasingAmount - minFee)
-    miner.assertBalances(secondAddress, balance2, eff2 + leasingAmount)
+    miner.assertBalances(firstAddress, bd1.regular - minFee, bd1.effective - leasingAmount - minFee)
+    miner.assertBalances(secondAddress, bd2.regular, bd2.effective + leasingAmount)
 
     val leaseCancelJson = sender.postJson(
       "/leasing/cancel",
@@ -126,8 +126,8 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
     val leaseCancel = Json.parse(leaseCancelJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(leaseCancel)
 
-    miner.assertBalances(firstAddress, balance1 - 2 * minFee, eff1 - 2 * minFee)
-    miner.assertBalances(secondAddress, balance2, eff2)
+    miner.assertBalances(firstAddress, bd1.regular - 2 * minFee, bd1.regular - 2 * minFee)
+    miner.assertBalances(secondAddress, bd2.regular, bd2.effective)
   }
 
   test("addresses data") {

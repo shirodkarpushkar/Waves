@@ -1,4 +1,5 @@
 package com.wavesplatform.it.sync.activation
+
 import com.typesafe.config.{Config, ConfigFactory}
 import com.wavesplatform.features.api.NodeFeatureStatus
 import com.wavesplatform.features.{BlockchainFeatureStatus, BlockchainFeatures}
@@ -6,6 +7,7 @@ import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.transactions.NodesFromDocker
 import com.wavesplatform.it.{Docker, ReportingTestName}
 import org.scalatest.{CancelAfterFailure, FreeSpec, Matchers}
+
 class PreActivatedFeaturesTestSuite
     extends FreeSpec
     with Matchers
@@ -14,11 +16,6 @@ class PreActivatedFeaturesTestSuite
     with ActivationStatusRequest
     with ReportingTestName {
   override protected def nodeConfigs: Seq[Config] = PreActivatedFeaturesTestSuite.Configs
-
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-    nodes.foreach(n => n.accountBalances(n.address))
-  }
 
   "before activation check" in {
     nodes.waitForHeight(PreActivatedFeaturesTestSuite.votingInterval / 2)

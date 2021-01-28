@@ -4,7 +4,7 @@ import com.wavesplatform.account.AddressScheme
 import com.wavesplatform.api.http.TransactionsApiRoute
 import com.wavesplatform.api.http.TransactionsApiRoute.LeaseStatus
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.api.TransactionInfo
+import com.wavesplatform.it.api.{BalanceDetails, TransactionInfo}
 import com.wavesplatform.it.sync._
 import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
@@ -16,8 +16,8 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("leasing waves decreases lessor's eff.b. and increases lessee's eff.b.; lessor pays fee") {
     for (v <- leaseTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
 
       val createdLeaseTx = sender.lease(firstKeyPair, secondAddress, leasingAmount, leasingFee = minFee, version = v)
       nodes.waitForHeightAriseAndTxPresent(createdLeaseTx.id)
@@ -36,7 +36,7 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
       val createdLeaseTxId = sender.lease(firstKeyPair, secondAddress, leasingAmount, leasingFee = minFee, version = v).id
       nodes.waitForHeightAriseAndTxPresent(createdLeaseTxId)
 
-      val eff2 = miner.accountBalances(secondAddress)._2
+      val eff2 = miner.balanceDetails(secondAddress).effective
 
       assertBadRequestAndResponse(sender.lease(secondKeyPair, thirdAddress, eff2 - minFee, leasingFee = minFee, version = v), errorMessage)
     }
@@ -44,8 +44,8 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("can not make leasing without having enough balance") {
     for (v <- leaseTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
 
       //secondAddress effective balance more than general balance
       assertBadRequestAndResponse(sender.lease(secondKeyPair, firstAddress, balance2 + 1.waves, minFee, version = v), errorMessage)
@@ -74,8 +74,8 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
     }
 
     for (v <- leaseTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
 
       val createdLeaseTxId = sender.lease(firstKeyPair, secondAddress, leasingAmount, minFee, version = v).id
       nodes.waitForHeightAriseAndTxPresent(createdLeaseTxId)
@@ -114,8 +114,8 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("lease cancellation can be done only once") {
     for (v <- leaseTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
 
       val createdLeasingTxId = sender.lease(firstKeyPair, secondAddress, leasingAmount, minFee, version = v).id
       nodes.waitForHeightAriseAndTxPresent(createdLeasingTxId)
@@ -135,8 +135,8 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("only sender can cancel lease transaction") {
     for (v <- leaseTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
 
       val createdLeaseTxId = sender.lease(firstKeyPair, secondAddress, leasingAmount, leasingFee = minFee, version = v).id
       nodes.waitForHeightAriseAndTxPresent(createdLeaseTxId)
@@ -150,7 +150,7 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("can not make leasing to yourself") {
     for (v <- leaseTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
       assertBadRequestAndResponse(sender.lease(firstKeyPair, firstAddress, balance1 + 1.waves, minFee, v), "Transaction to yourself")
       nodes.waitForHeightArise()
 

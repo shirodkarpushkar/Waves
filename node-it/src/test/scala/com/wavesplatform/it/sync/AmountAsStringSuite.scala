@@ -39,7 +39,6 @@ class AmountAsStringSuite extends BaseTransactionSuite with OverflowBlock {
   test("amount as string in addresses api") {
     val firstBalance = sender.balanceDetails(firstAddress)
     sender.balance(firstAddress, amountsAsStrings = true).balance shouldBe firstBalance.regular
-    sender.balance(firstAddress, confirmations = Some(1), amountsAsStrings = true).balance shouldBe firstBalance.regular
 
     val balanceDetails = sender.balanceDetails(firstAddress, amountsAsStrings = true)
     balanceDetails.regular shouldBe firstBalance.regular

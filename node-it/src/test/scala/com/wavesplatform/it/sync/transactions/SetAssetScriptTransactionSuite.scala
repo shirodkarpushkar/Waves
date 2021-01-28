@@ -6,6 +6,7 @@ import com.wavesplatform.api.http.ApiError.{Mistiming, StateCheckFailed, WrongJs
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.{Base58, EitherExt2}
 import com.wavesplatform.crypto
+import com.wavesplatform.it.api.BalanceDetails
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{script, someAssetAmount, _}
 import com.wavesplatform.it.transactions.BaseTransactionSuite
@@ -91,7 +92,7 @@ class SetAssetScriptTransactionSuite extends BaseTransactionSuite {
 
   test("issuer cannot change script on asset w/o initial script") {
     for (v <- setAssetScrTxSupportedVersions) {
-      val (balance, eff) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance, _, _, eff) = miner.balanceDetails(firstAddress)
       assertApiError(
         sender.setAssetScript(assetWOScript, firstKeyPair, setAssetScriptFee, Some(scriptBase64), version = v),
         AssertiveApiError(StateCheckFailed.Id, StateCheckFailed.message("Cannot set script on an asset issued without a script"))
@@ -164,8 +165,8 @@ class SetAssetScriptTransactionSuite extends BaseTransactionSuite {
   }
 
   test("non-issuer cannot change script on asset w/o script") {
-    val (balance1, eff1) = miner.accountBalances(firstAddress)
-    val (balance2, eff2) = miner.accountBalances(secondAddress)
+    val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+    val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
     for (v <- setAssetScrTxSupportedVersions) {
       assertApiError(sender.setAssetScript(assetWOScript, secondKeyPair, setAssetScriptFee, Some(scriptBase64), version = v)) { error =>
         error.id shouldBe StateCheckFailed.Id
@@ -194,7 +195,7 @@ class SetAssetScriptTransactionSuite extends BaseTransactionSuite {
     assert(details.scriptText == "true")
     assert(details.script == scriptBase64)
     for (v <- setAssetScrTxSupportedVersions) {
-      val (balance, eff) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance, _, _, eff) = miner.balanceDetails(firstAddress)
       val txId           = sender.setAssetScript(assetWScript, firstKeyPair, setAssetScriptFee, Some(script2), version = v).id
       nodes.waitForHeightAriseAndTxPresent(txId)
       miner.assertBalances(firstAddress, balance - setAssetScriptFee, eff - setAssetScriptFee)
@@ -205,7 +206,7 @@ class SetAssetScriptTransactionSuite extends BaseTransactionSuite {
   }
 
   test("cannot transact without having enough waves") {
-    val (balance, eff) = miner.accountBalances(firstAddress)
+    val BalanceDetails(_, balance, _, _, eff) = miner.balanceDetails(firstAddress)
     for (v <- setAssetScrTxSupportedVersions) {
       assertApiError(sender.setAssetScript(assetWScript, firstKeyPair, balance + 1, Some(scriptBase64), version = v)) { error =>
         error.id shouldBe StateCheckFailed.Id
@@ -240,7 +241,7 @@ class SetAssetScriptTransactionSuite extends BaseTransactionSuite {
           .signed(version = v, sender.keyPair.publicKey, assetId, Some(script), fee, timestamp, sender.keyPair.privateKey)
           .explicitGet()
 
-      val (balance, eff) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance, _, _, eff) = miner.balanceDetails(firstAddress)
 
       val invalidTxs = Seq(
         (
@@ -431,8 +432,8 @@ class SetAssetScriptTransactionSuite extends BaseTransactionSuite {
       .id
     nodes.waitForHeightAriseAndTxPresent(assetV1)
 
-    val (balance1, eff1) = miner.accountBalances(thirdAddress)
-    val (balance2, eff2) = miner.accountBalances(secondAddress)
+    val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+    val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
     for (v <- setAssetScrTxSupportedVersions) {
       assertApiError(sender.setAssetScript(assetV1, thirdKeyPair, setAssetScriptFee, Some(scriptBase64), version = v)) { error =>
         error.message.contains("Reason: Cannot set script on an asset issued without a script") shouldBe true

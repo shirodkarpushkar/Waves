@@ -4,7 +4,7 @@ import com.wavesplatform.account.{AddressOrAlias, AddressScheme}
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.api.TransferTransactionInfo
+import com.wavesplatform.it.api.{BalanceDetails, TransferTransactionInfo}
 import com.wavesplatform.it.sync._
 import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
@@ -24,8 +24,8 @@ class TransferTransactionSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("asset transfer changes sender's and recipient's asset balance; issuer's.waves balance is decreased by fee") {
     for (v <- transferTxSupportedVersions) {
-      val (firstBalance, firstEffBalance)   = miner.accountBalances(firstAddress)
-      val (secondBalance, secondEffBalance) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, firstBalance, _, _, firstEffBalance)   = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, secondBalance, _, _, secondEffBalance) = miner.balanceDetails(secondAddress)
 
       val issuedAssetId = sender.issue(firstKeyPair, "name", "description", someAssetAmount, 2, reissuable = false, issueFee).id
 
@@ -50,8 +50,8 @@ class TransferTransactionSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("waves transfer changes waves balances and eff.b.") {
     for (v <- transferTxSupportedVersions) {
-      val (firstBalance, firstEffBalance)   = miner.accountBalances(firstAddress)
-      val (secondBalance, secondEffBalance) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, firstBalance, _, _, firstEffBalance)   = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, secondBalance, _, _, secondEffBalance) = miner.balanceDetails(secondAddress)
 
       val transferId = sender.transfer(firstKeyPair, secondAddress, transferAmount, minFee, version = v).id
 
@@ -68,7 +68,7 @@ class TransferTransactionSuite extends BaseTransactionSuite with CancelAfterFail
         .selfSigned(1.toByte, sender.keyPair, AddressOrAlias.fromString(sender.address).explicitGet(), Waves, 1, Waves, fee, ByteStr.empty, timestamp)
         .explicitGet()
 
-    val (balance1, eff1) = miner.accountBalances(firstAddress)
+    val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
 
     val invalidTxs = Seq(
       (invalidTx(timestamp = System.currentTimeMillis + 1.day.toMillis), "Transaction timestamp .* is more than .*ms in the future"),
@@ -87,7 +87,7 @@ class TransferTransactionSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("can not make transfer without having enough effective balance") {
     for (v <- transferTxSupportedVersions) {
-      val (secondBalance, secondEffBalance) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, secondBalance, _, _, secondEffBalance) = miner.balanceDetails(secondAddress)
 
       assertApiErrorRaised(sender.transfer(secondKeyPair, firstAddress, secondEffBalance, minFee, version = v))
       nodes.waitForHeightArise()
@@ -98,7 +98,7 @@ class TransferTransactionSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("can not make transfer without having enough balance") {
     for (v <- transferTxSupportedVersions) {
-      val (secondBalance, secondEffBalance) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, secondBalance, _, _, secondEffBalance) = miner.balanceDetails(secondAddress)
 
       assertBadRequestAndResponse(
         sender.transfer(secondKeyPair, firstAddress, secondBalance + 1.waves, minFee, version = v),
@@ -110,8 +110,8 @@ class TransferTransactionSuite extends BaseTransactionSuite with CancelAfterFail
 
   test("can forge block with sending majority of some asset to self and to other account") {
     for (v <- transferTxSupportedVersions) {
-      val (firstBalance, firstEffBalance)   = miner.accountBalances(firstAddress)
-      val (secondBalance, secondEffBalance) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, firstBalance, _, _, firstEffBalance)   = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, secondBalance, _, _, secondEffBalance) = miner.balanceDetails(secondAddress)
 
       val assetId = sender.issue(firstKeyPair, "second asset", "description", someAssetAmount, 0, reissuable = false, fee = issueFee).id
 

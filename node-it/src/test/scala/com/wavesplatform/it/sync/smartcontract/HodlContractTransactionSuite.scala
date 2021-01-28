@@ -102,7 +102,7 @@ class HodlContractTransactionSuite extends BaseTransactionSuite with CancelAfter
   }
 
   test("caller deposits waves") {
-    val balanceBefore = sender.accountBalances(contractAddress)._1
+    val balanceBefore = sender.balance(contractAddress).balance
     val invokeScriptId = sender
       .invokeScript(
         caller,
@@ -119,7 +119,7 @@ class HodlContractTransactionSuite extends BaseTransactionSuite with CancelAfter
     sender.waitForTransaction(invokeScriptId)
 
     sender.getDataByKey(contractAddress, callerAddress) shouldBe IntegerDataEntry(callerAddress, 1.5.waves)
-    val balanceAfter = sender.accountBalances(contractAddress)._1
+    val balanceAfter = sender.balance(contractAddress).balance
 
     (balanceAfter - balanceBefore) shouldBe 1.5.waves
   }
@@ -140,7 +140,7 @@ class HodlContractTransactionSuite extends BaseTransactionSuite with CancelAfter
   }
 
   test("caller can withdraw less than he owns") {
-    val balanceBefore = sender.accountBalances(contractAddress)._1
+    val balanceBefore = sender.balance(contractAddress).balance
     val invokeScriptId = sender
       .invokeScript(
         caller,
@@ -154,7 +154,7 @@ class HodlContractTransactionSuite extends BaseTransactionSuite with CancelAfter
       ._1
       .id
 
-    val balanceAfter = sender.accountBalances(contractAddress)._1
+    val balanceAfter = sender.balance(contractAddress).balance
 
     sender.getDataByKey(contractAddress, callerAddress) shouldBe IntegerDataEntry(callerAddress, 0.01.waves)
     (balanceAfter - balanceBefore) shouldBe -1.49.waves

@@ -141,8 +141,8 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
   }
 
   test("required fee in sponsored assets considers scripts count") {
-    dAppInitBalance = sender.accountBalances(dAppAddress)._1
-    callerInitBalance = sender.accountBalances(callerAddress)._1
+    dAppInitBalance = sender.balance(dAppAddress).balance
+    callerInitBalance = sender.balance(callerAddress).balance
 
     val paymentAmount  = 1
     val feeAmount      = 9
@@ -197,11 +197,11 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
 
     sender.assetBalance(dAppAddress, dAppAsset).balance shouldBe halfQuantity + (feeAmount - 10) + smartFeeAmount
     sender.assetBalance(dAppAddress, callerAsset).balance shouldBe halfQuantity + paymentAmount
-    sender.accountBalances(dAppAddress)._1 shouldBe dAppInitBalance - 0.009.waves - 0.053.waves
+    sender.balance(dAppAddress).balance shouldBe dAppInitBalance - 0.009.waves - 0.053.waves
 
     sender.assetBalance(callerAddress, dAppAsset).balance shouldBe halfQuantity + (-feeAmount + 10) - smartFeeAmount
     sender.assetBalance(callerAddress, callerAsset).balance shouldBe halfQuantity - paymentAmount
-    sender.accountBalances(callerAddress)._1 shouldBe callerInitBalance
+    sender.balance(callerAddress).balance shouldBe callerInitBalance
   }
 
   test("dApp caller is dApp address") {
@@ -209,7 +209,7 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
     val feeAmount     = 9
 
     val dAppAssetBalance = sender.assetBalance(dAppAddress, dAppAsset).balance
-    val dAppWavesBalance = sender.accountBalances(dAppAddress)._1
+    val dAppWavesBalance = sender.balance(dAppAddress).balance
 
     sender
       .invokeScript(
@@ -225,7 +225,7 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
       .id
 
     sender.assetBalance(dAppAddress, dAppAsset).balance shouldBe dAppAssetBalance
-    sender.accountBalances(dAppAddress)._1 shouldBe dAppWavesBalance - 0.009.waves
+    sender.balance(dAppAddress).balance shouldBe dAppWavesBalance - 0.009.waves
   }
 
 }

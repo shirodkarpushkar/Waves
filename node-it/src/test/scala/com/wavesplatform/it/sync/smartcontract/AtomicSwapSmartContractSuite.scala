@@ -7,7 +7,7 @@ import com.wavesplatform.common.utils.EitherExt2
 import com.wavesplatform.crypto
 import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.api.TransactionInfo
+import com.wavesplatform.it.api.{BalanceDetails, TransactionInfo}
 import com.wavesplatform.it.sync._
 import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
@@ -134,9 +134,9 @@ class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfter
   test("step5 - Bob makes transfer; after revert Alice takes funds back") {
     val height = nodes.height.max
 
-    val (bobBalance, bobEffBalance)     = miner.accountBalances(BobBC1.toAddress.toString)
-    val (aliceBalance, aliceEffBalance) = miner.accountBalances(AliceBC1.toAddress.toString)
-    val (swapBalance, swapEffBalance)   = miner.accountBalances(swapBC1.toAddress.toString)
+    val BalanceDetails(_, bobBalance, _, _, bobEffBalance)     = miner.balanceDetails(BobBC1.toAddress.toString)
+    val BalanceDetails(_, aliceBalance, _, _, aliceEffBalance) = miner.balanceDetails(AliceBC1.toAddress.toString)
+    val BalanceDetails(_, swapBalance, _, _, swapEffBalance)   = miner.balanceDetails(swapBC1.toAddress.toString)
 
     val unsigned =
       TransferTransaction(
@@ -173,7 +173,6 @@ class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfter
 
     nodes.waitForHeight(height + 20)
 
-    miner.accountBalances(swapBC1.toAddress.toString)
     assertBadRequestAndMessage(miner.transactionInfo[TransactionInfo](versionedTransferId), "transactions does not exist", 404)
 
     val selfSignedToAlice = TransferTransaction

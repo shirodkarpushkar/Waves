@@ -354,7 +354,7 @@ class PoSSuite extends FunSuite with Matchers with NodesFromDocker with WaitForH
         .calculateDelay(
           hit(hitSource.arr),
           lastBlockCData.baseTarget,
-          nodes.head.accountBalances(signerPK.toAddress.toString)._2
+          nodes.head.balance(signerPK.toAddress.toString).balance
         )
     )
 

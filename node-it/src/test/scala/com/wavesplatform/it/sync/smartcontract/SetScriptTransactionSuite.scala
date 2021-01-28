@@ -49,9 +49,9 @@ class SetScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFai
         }
       """.stripMargin
 
-      val (contractBalance, contractEffBalance) = sender.accountBalances(contract.toAddress.toString)
-      val script                                = ScriptCompiler(scriptText, isAssetScript = false, ScriptEstimatorV2).explicitGet()._1.bytes().base64
-      val setScriptId                           = sender.setScript(contract, Some(script), setScriptFee, version = v).id
+      val contractBD  = sender.balanceDetails(contract.toAddress.toString)
+      val script      = ScriptCompiler(scriptText, isAssetScript = false, ScriptEstimatorV2).explicitGet()._1.bytes().base64
+      val setScriptId = sender.setScript(contract, Some(script), setScriptFee, version = v).id
 
       nodes.waitForHeightAriseAndTxPresent(setScriptId)
 
@@ -63,15 +63,15 @@ class SetScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFai
       acc0ScriptInfo.script.get.startsWith("base64:") shouldBe true
 
       sender.transactionInfo[TransactionInfo](setScriptId).script.get.startsWith("base64:") shouldBe true
-      sender.assertBalances(contract.toAddress.toString, contractBalance - setScriptFee, contractEffBalance - setScriptFee)
+      sender.assertBalances(contract.toAddress.toString, contractBD.regular - setScriptFee, contractBD.effective - setScriptFee)
     }
   }
 
   test("can't send from contract using old pk") {
     for (v <- setScrTxSupportedVersions) {
-      val contract                              = if (v < 2) acc0 else acc4
-      val (contractBalance, contractEffBalance) = sender.accountBalances(contract.toAddress.toString)
-      val (acc3Balance, acc3EffBalance)         = sender.accountBalances(acc3.toAddress.toString)
+      val contract   = if (v < 2) acc0 else acc4
+      val contractBD = sender.balanceDetails(contract.toAddress.toString)
+      val acc3bd     = sender.balanceDetails(acc3.toAddress.toString)
       assertApiErrorRaised(
         sender.transfer(
           contract,
@@ -81,16 +81,16 @@ class SetScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFai
           fee = minFee + 0.00001.waves + 0.00002.waves
         )
       )
-      sender.assertBalances(contract.toAddress.toString, contractBalance, contractEffBalance)
-      sender.assertBalances(acc3.toAddress.toString, acc3Balance, acc3EffBalance)
+      sender.assertBalances(contract.toAddress.toString, contractBD.regular, contractBD.effective)
+      sender.assertBalances(acc3.toAddress.toString, acc3bd.regular, acc3bd.effective)
     }
   }
 
   test("can send from acc0 using multisig of acc1 and acc2") {
     for (v <- setScrTxSupportedVersions) {
-      val contract                              = if (v < 2) acc0 else acc4
-      val (contractBalance, contractEffBalance) = sender.accountBalances(contract.toAddress.toString)
-      val (acc3Balance, acc3EffBalance)         = sender.accountBalances(acc3.toAddress.toString)
+      val contract   = if (v < 2) acc0 else acc4
+      val contractBD = sender.balanceDetails(contract.toAddress.toString)
+      val acc3BD     = sender.balanceDetails(acc3.toAddress.toString)
       val unsigned =
         TransferTransaction(
           version = 2.toByte,
@@ -114,17 +114,17 @@ class SetScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFai
 
       sender.assertBalances(
         contract.toAddress.toString,
-        contractBalance - 1000 - minFee - 0.004.waves,
-        contractEffBalance - 1000 - minFee - 0.004.waves
+        contractBD.regular - 1000 - minFee - 0.004.waves,
+        contractBD.effective - 1000 - minFee - 0.004.waves
       )
-      sender.assertBalances(acc3.toAddress.toString, acc3Balance + 1000, acc3EffBalance + 1000)
+      sender.assertBalances(acc3.toAddress.toString, acc3BD.regular + 1000, acc3BD.effective + 1000)
     }
   }
 
   test("can clear script at contract") {
     for (v <- setScrTxSupportedVersions) {
-      val contract                              = if (v < 2) acc0 else acc4
-      val (contractBalance, contractEffBalance) = sender.accountBalances(contract.toAddress.toString)
+      val contract   = if (v < 2) acc0 else acc4
+      val contractBD = sender.balanceDetails(contract.toAddress.toString)
       val unsigned = SetScriptTransaction
         .create(
           version = v,
@@ -151,17 +151,17 @@ class SetScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFai
       sender.addressScriptInfo(contract.toAddress.toString).scriptText shouldBe None
       sender.assertBalances(
         contract.toAddress.toString,
-        contractBalance - setScriptFee - 0.004.waves,
-        contractEffBalance - setScriptFee - 0.004.waves
+        contractBD.regular - setScriptFee - 0.004.waves,
+        contractBD.effective - setScriptFee - 0.004.waves
       )
     }
   }
 
   test("can send using old pk of contract") {
     for (v <- setScrTxSupportedVersions) {
-      val contract                              = if (v < 2) acc0 else acc4
-      val (contractBalance, contractEffBalance) = sender.accountBalances(contract.toAddress.toString)
-      val (acc3Balance, acc3EffBalance)         = sender.accountBalances(acc3.toAddress.toString)
+      val contract   = if (v < 2) acc0 else acc4
+      val contractBD = sender.balanceDetails(contract.toAddress.toString)
+      val acc3BD     = sender.balanceDetails(acc3.toAddress.toString)
       val transferTxId = sender
         .transfer(
           contract,
@@ -174,8 +174,8 @@ class SetScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFai
         .id
 
       nodes.waitForHeightAriseAndTxPresent(transferTxId)
-      sender.assertBalances(contract.toAddress.toString, contractBalance - 1000 - minFee, contractEffBalance - 1000 - minFee)
-      sender.assertBalances(acc3.toAddress.toString, acc3Balance + 1000, acc3EffBalance + 1000)
+      sender.assertBalances(contract.toAddress.toString, contractBD.regular - 1000 - minFee, contractBD.effective - 1000 - minFee)
+      sender.assertBalances(acc3.toAddress.toString, acc3BD.regular + 1000, acc3BD.effective + 1000)
     }
   }
 }

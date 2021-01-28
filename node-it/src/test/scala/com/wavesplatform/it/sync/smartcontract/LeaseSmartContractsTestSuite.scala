@@ -3,6 +3,7 @@ package com.wavesplatform.it.sync.smartcontract
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
 import com.wavesplatform.crypto
+import com.wavesplatform.it.api.BalanceDetails
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{minFee, setScriptFee, transferAmount}
 import com.wavesplatform.it.transactions.BaseTransactionSuite
@@ -19,8 +20,8 @@ class LeaseSmartContractsTestSuite extends BaseTransactionSuite with CancelAfter
   private def acc2 = thirdKeyPair
 
   test("set contract, make leasing and cancel leasing") {
-    val (balance1, eff1) = miner.accountBalances(acc0.toAddress.toString)
-    val (balance2, eff2) = miner.accountBalances(thirdKeyPair.toAddress.toString)
+    val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(acc0.toAddress.toString)
+    val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(thirdKeyPair.toAddress.toString)
 
     sender.transfer(sender.keyPair, acc0.toAddress.toString, 10 * transferAmount, minFee, waitForTx = true).id
 

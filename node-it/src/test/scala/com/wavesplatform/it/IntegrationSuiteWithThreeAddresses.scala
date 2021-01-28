@@ -44,8 +44,8 @@ trait IntegrationSuiteWithThreeAddresses
 
     def dumpBalances(accounts: Seq[KeyPair], label: String): Unit =
       accounts.foreach { acc =>
-        val (balance, eff) = miner.accountBalances(acc.toAddress.toString)
-        log.debug(s"$label $acc balance: balance = $balance, effective = $eff")
+        val bd = miner.balanceDetails(acc.toAddress.toString)
+        log.debug(s"$label $acc balance: balance = ${bd.regular}, effective = ${bd.effective}")
       }
 
     def makeTransfers(accounts: Seq[KeyPair]): Seq[String] = accounts.map { acc =>

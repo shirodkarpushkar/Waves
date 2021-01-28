@@ -9,7 +9,7 @@ import com.wavesplatform.common.utils.{Base58, EitherExt2}
 import com.wavesplatform.features.BlockchainFeatures
 import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.api.{TransactionInfo, UnexpectedStatusCodeException}
+import com.wavesplatform.it.api.{BalanceDetails, TransactionInfo, UnexpectedStatusCodeException}
 import com.wavesplatform.it.sync.{calcDataFee, minFee, _}
 import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
@@ -132,7 +132,7 @@ class DataTransactionSuite extends BaseTransactionSuite with EitherValues {
 
   test("sender's waves balance is decreased by fee") {
     for (v <- dataTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
       val entry            = IntegerDataEntry("int", 0xcafebabe)
       val data             = List(entry)
       val dataFee          = calcDataFee(data, v)
@@ -148,7 +148,7 @@ class DataTransactionSuite extends BaseTransactionSuite with EitherValues {
 
   test("cannot broadcast data without having enough waves") {
     for (v <- dataTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
 
       val data = List(BooleanDataEntry("bool", false))
       assertBadRequestAndResponse(sender.putData(firstKeyPair, data, balance1 + 1, version = v), "Accounts balance errors")
@@ -168,7 +168,7 @@ class DataTransactionSuite extends BaseTransactionSuite with EitherValues {
   test("cannot broadcast data transaction with invalid timestamp (more than allowed in future)") {
     val dataEntry = List(IntegerDataEntry("int", 177))
     for (v <- dataTxSupportedVersions) {
-      val (balance1, eff1)        = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
       val invalidDataTxFromFuture = data(entries = dataEntry, timestamp = System.currentTimeMillis + 1.day.toMillis, version = v)
       assertBadRequestAndResponse(
         sender.broadcastRequest(invalidDataTxFromFuture.json()),
@@ -183,7 +183,7 @@ class DataTransactionSuite extends BaseTransactionSuite with EitherValues {
   test("cannot broadcast data transaction with insufficient fee") {
     val dataEntry = List(IntegerDataEntry("int", 177))
     for (v <- dataTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
       val invalidDataTx    = data(entries = dataEntry, fee = calcDataFee(dataEntry, v) - 1, version = v)
       assertBadRequestAndResponse(
         sender.broadcastRequest(invalidDataTx.json()),
@@ -255,7 +255,7 @@ class DataTransactionSuite extends BaseTransactionSuite with EitherValues {
       sender.getData(txSenderAddress) shouldBe boolList ++ reIntList ++ stringList
 
       // define tx with all types
-      val (balance2, eff2)   = miner.accountBalances(txSenderAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(firstAddress)
       val intEntry2          = IntegerDataEntry("int", -127)
       val boolEntry2         = BooleanDataEntry("bool", false)
       val blobEntry2         = BinaryDataEntry("blob", ByteStr(Array[Byte](127.toByte, 0, 1, 1)))

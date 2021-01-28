@@ -251,9 +251,8 @@ object AsyncHttpApi extends Assertions {
       get(s"/blockchain/rewards$maybeHeight", amountsAsString).as[RewardStatus](amountsAsString)
     }
 
-    def balance(address: String, confirmations: Option[Int] = None, amountsAsStrings: Boolean = false): Future[Balance] = {
-      val maybeConfirmations = confirmations.fold("")(a => s"/$a")
-      get(s"/addresses/balance/$address$maybeConfirmations", amountsAsStrings).as[Balance](amountsAsStrings)
+    def balance(address: String, amountsAsStrings: Boolean = false): Future[Balance] = {
+      get(s"/addresses/balance/$address", amountsAsStrings).as[Balance](amountsAsStrings)
     }
 
     def balances(height: Option[Int], addresses: Seq[String], asset: Option[String]): Future[Seq[Balance]] = {
@@ -954,10 +953,6 @@ object AsyncHttpApi extends Assertions {
 
     def accountsBalances(height: Option[Int], accounts: Seq[String], asset: Option[String]): Future[Seq[(String, Long)]] =
       n.balances(height, accounts, asset).map(_.map(b => (b.address, b.balance)))
-
-    def accountBalances(acc: String): Future[(Long, Long)] = {
-      n.balance(acc).map(_.balance).zip(n.effectiveBalance(acc).map(_.balance))
-    }
 
     def assertBalances(acc: String, balance: Long, effectiveBalance: Long)(implicit pos: Position): Future[Unit] = {
       for {

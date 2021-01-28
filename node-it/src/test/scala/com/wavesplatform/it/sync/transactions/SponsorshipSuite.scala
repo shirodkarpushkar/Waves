@@ -77,8 +77,8 @@ class SponsorshipSuite
   protected override def beforeAll(): Unit = {
     super.beforeAll()
 
-    sponsorWavesBalance = sender.accountBalances(sponsorAddress)._2
-    minerWavesBalance = sender.accountBalances(miner.address)._2
+    sponsorWavesBalance = sender.balanceDetails(sponsorAddress).effective
+    minerWavesBalance = sender.balanceDetails(miner.address).effective
     minerWavesBalanceAfterFirstXferTest = minerWavesBalance + 2 * issueFee + 2 * sponsorReducedFee + 2 * minFee + 2 * FeeValidation.FeeUnit * SmallFee / minSponsorFee
     sponsorWavesBalanceAfterFirstXferTest = sponsorWavesBalance - 2 * issueFee - 2 * sponsorReducedFee - 2 * minFee - 2 * FeeValidation.FeeUnit * SmallFee / minSponsorFee
 
@@ -135,7 +135,7 @@ class SponsorshipSuite
 
         val assetInfo = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
         assetInfo.minSponsoredAssetFee shouldBe Some(Token)
-        assetInfo.sponsorBalance shouldBe Some(sender.accountBalances(sponsorAddress)._2)
+        assetInfo.sponsorBalance shouldBe Some(sender.balanceDetails(sponsorAddress).effective)
       }
     }
 
@@ -222,7 +222,7 @@ class SponsorshipSuite
     "assets balance should contain sponsor fee info and sponsor balance" in {
       val sponsorLeaseSomeWaves = sender.lease(sponsor, bobAddress, leasingAmount, leasingFee).id
       nodes.waitForHeightAriseAndTxPresent(sponsorLeaseSomeWaves)
-      val (_, sponsorEffectiveBalance)   = sender.accountBalances(sponsorAddress)
+      val sponsorEffectiveBalance   = sender.balanceDetails(sponsorAddress).effective
       val aliceFirstSponsorAssetBalance  = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == firstSponsorAssetId).head
       val aliceSecondSponsorAssetBalance = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == secondSponsorAssetId).head
       aliceFirstSponsorAssetBalance.minSponsoredAssetFee shouldBe Some(minSponsorFee)
@@ -315,21 +315,21 @@ class SponsorshipSuite
         for (sponsorAssetId <- Seq(firstSponsorAssetId, secondSponsorAssetId)) {
           val assetInfo = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
           assetInfo.minSponsoredAssetFee shouldBe Some(Token / 2)
-          assetInfo.sponsorBalance shouldBe Some(sender.accountBalances(sponsorAddress)._2)
+          assetInfo.sponsorBalance shouldBe Some(sender.balanceDetails(sponsorAddress).effective)
         }
       }
 
       "make transfer with new min sponsored fee" in {
-        val sponsoredBalance          = sender.accountBalances(sponsorAddress)
+        val sponsoredBalance          = sender.balanceDetails(sponsorAddress)
         val sponsorFirstAssetBalance  = sender.assetBalance(sponsorAddress, firstSponsorAssetId).balance
         val sponsorSecondAssetBalance = sender.assetBalance(sponsorAddress, secondSponsorAssetId).balance
         val aliceFirstAssetBalance    = sender.assetBalance(aliceAddress, firstSponsorAssetId).balance
         val aliceSecondAssetBalance   = sender.assetBalance(aliceAddress, secondSponsorAssetId).balance
-        val aliceWavesBalance         = sender.accountBalances(aliceAddress)
+        val aliceWavesBalance         = sender.balanceDetails(aliceAddress)
         val bobFirstAssetBalance      = sender.assetBalance(bobAddress, firstSponsorAssetId).balance
         val bobSecondAssetBalance     = sender.assetBalance(bobAddress, secondSponsorAssetId).balance
-        val bobWavesBalance           = sender.accountBalances(bobAddress)
-        val minerBalance              = miner.accountBalances(miner.address)
+        val bobWavesBalance           = sender.balanceDetails(bobAddress)
+        val minerBalance              = miner.balanceDetails(miner.address)
         val minerFirstAssetBalance    = miner.assetBalance(miner.address, firstSponsorAssetId).balance
         val minerSecondAssetBalance   = miner.assetBalance(miner.address, secondSponsorAssetId).balance
 
@@ -343,16 +343,16 @@ class SponsorshipSuite
         )
 
         val wavesFee = FeeValidation.FeeUnit * 2 * TinyFee / TinyFee
-        sender.assertBalances(sponsorAddress, sponsoredBalance._1 - wavesFee, sponsoredBalance._2 - wavesFee)
+        sender.assertBalances(sponsorAddress, sponsoredBalance.regular - wavesFee, sponsoredBalance.effective - wavesFee)
         sender.assertAssetBalance(sponsorAddress, firstSponsorAssetId, sponsorFirstAssetBalance + TinyFee)
         sender.assertAssetBalance(sponsorAddress, secondSponsorAssetId, sponsorSecondAssetBalance + TinyFee)
         sender.assertAssetBalance(aliceAddress, firstSponsorAssetId, aliceFirstAssetBalance - TinyFee)
         sender.assertAssetBalance(aliceAddress, secondSponsorAssetId, aliceSecondAssetBalance - TinyFee)
-        sender.assertBalances(aliceAddress, aliceWavesBalance._1 - 2.waves, aliceWavesBalance._2 - 2.waves)
-        sender.assertBalances(bobAddress, bobWavesBalance._1 + 2.waves, bobWavesBalance._2 + 2.waves)
+        sender.assertBalances(aliceAddress, aliceWavesBalance.regular - 2.waves, aliceWavesBalance.effective - 2.waves)
+        sender.assertBalances(bobAddress, bobWavesBalance.regular + 2.waves, bobWavesBalance.effective + 2.waves)
         sender.assertAssetBalance(bobAddress, firstSponsorAssetId, bobFirstAssetBalance)
         sender.assertAssetBalance(bobAddress, secondSponsorAssetId, bobSecondAssetBalance)
-        miner.assertBalances(miner.address, minerBalance._2 + wavesFee)
+        miner.assertBalances(miner.address, minerBalance.effective + wavesFee)
         miner.assertAssetBalance(miner.address, firstSponsorAssetId, minerFirstAssetBalance)
         miner.assertAssetBalance(miner.address, secondSponsorAssetId, minerSecondAssetBalance)
       }
@@ -367,7 +367,7 @@ class SponsorshipSuite
         for (sponsorAssetId <- Seq(firstSponsorAssetId, secondSponsorAssetId)) {
           val assetInfo = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
           assetInfo.minSponsoredAssetFee shouldBe Some(LargeFee)
-          assetInfo.sponsorBalance shouldBe Some(sender.accountBalances(sponsorAddress)._2)
+          assetInfo.sponsorBalance shouldBe Some(sender.balanceDetails(sponsorAddress).effective)
         }
       }
 
@@ -394,14 +394,14 @@ class SponsorshipSuite
       }
 
       "make transfer with updated min sponsored fee" in {
-        val sponsoredBalance          = sender.accountBalances(sponsorAddress)
+        val sponsoredBalance          = sender.balanceDetails(sponsorAddress)
         val sponsorFirstAssetBalance  = sender.assetBalance(sponsorAddress, firstSponsorAssetId).balance
         val sponsorSecondAssetBalance = sender.assetBalance(sponsorAddress, secondSponsorAssetId).balance
         val aliceFirstAssetBalance    = sender.assetBalance(aliceAddress, firstSponsorAssetId).balance
         val aliceSecondAssetBalance   = sender.assetBalance(aliceAddress, firstSponsorAssetId).balance
-        val aliceWavesBalance         = sender.accountBalances(aliceAddress)
-        val bobWavesBalance           = sender.accountBalances(bobAddress)
-        val minerBalance              = miner.accountBalances(miner.address)
+        val aliceWavesBalance         = sender.balanceDetails(aliceAddress)
+        val bobWavesBalance           = sender.balanceDetails(bobAddress)
+        val minerBalance              = miner.balanceDetails(miner.address)
 
         val transferTxCustomFeeAlice1 = sender.transfer(alice, bobAddress, 1.waves, LargeFee, None, Some(firstSponsorAssetId)).id
         val transferTxCustomFeeAlice2 = sender.transfer(alice, bobAddress, 1.waves, LargeFee, None, Some(secondSponsorAssetId)).id
@@ -411,22 +411,22 @@ class SponsorshipSuite
         val wavesFee = FeeValidation.FeeUnit * 2 * LargeFee / LargeFee
         nodes.waitForHeightArise()
 
-        sender.assertBalances(sponsorAddress, sponsoredBalance._1 - wavesFee, sponsoredBalance._2 - wavesFee)
+        sender.assertBalances(sponsorAddress, sponsoredBalance.regular - wavesFee, sponsoredBalance.effective - wavesFee)
         sender.assertAssetBalance(sponsorAddress, firstSponsorAssetId, sponsorFirstAssetBalance + LargeFee)
         sender.assertAssetBalance(sponsorAddress, secondSponsorAssetId, sponsorSecondAssetBalance + LargeFee)
         sender.assertAssetBalance(aliceAddress, firstSponsorAssetId, aliceFirstAssetBalance - LargeFee)
         sender.assertAssetBalance(aliceAddress, secondSponsorAssetId, aliceSecondAssetBalance - LargeFee)
 
-        sender.assertBalances(aliceAddress, aliceWavesBalance._1 - 2.waves, aliceWavesBalance._2 - 2.waves)
-        sender.assertBalances(bobAddress, bobWavesBalance._1 + 2.waves, bobWavesBalance._2 + 2.waves)
-        miner.assertBalances(miner.address, minerBalance._1 + wavesFee, minerBalance._2 + wavesFee)
+        sender.assertBalances(aliceAddress, aliceWavesBalance.regular - 2.waves, aliceWavesBalance.effective - 2.waves)
+        sender.assertBalances(bobAddress, bobWavesBalance.regular + 2.waves, bobWavesBalance.effective + 2.waves)
+        miner.assertBalances(miner.address, minerBalance.regular + wavesFee, minerBalance.effective + wavesFee)
       }
 
     }
 
     "issue asset make sponsor and burn and reissue" in {
-      val sponsorBalance = sender.accountBalances(sponsorAddress)
-      val minerBalance   = miner.accountBalances(miner.address)
+      val sponsorBalance = sender.balanceDetails(sponsorAddress)
+      val minerBalance   = miner.balanceDetails(miner.address)
 
       val firstSponsorAssetId2 =
         sender
@@ -485,14 +485,14 @@ class SponsorshipSuite
       nodes.waitForHeightAriseAndTxPresent(aliceTransferWaves2)
 
       val totalWavesFee = FeeValidation.FeeUnit * 2 * SmallFee / Token + 2 * issueFee + 2 * sponsorReducedFee + 2 * burnFee + 2 * minFee + 2 * issueFee
-      miner.assertBalances(miner.address, minerBalance._1 + totalWavesFee, minerBalance._2 + totalWavesFee)
-      sender.assertBalances(sponsorAddress, sponsorBalance._1 - totalWavesFee, sponsorBalance._2 - totalWavesFee)
+      miner.assertBalances(miner.address, minerBalance.regular + totalWavesFee, minerBalance.effective + totalWavesFee)
+      sender.assertBalances(sponsorAddress, sponsorBalance.regular - totalWavesFee, sponsorBalance.effective - totalWavesFee)
       sender.assertAssetBalance(sponsorAddress, firstSponsorAssetId2, SmallFee + sponsorAssetTotal)
       sender.assertAssetBalance(sponsorAddress, secondSponsorAssetId2, SmallFee + sponsorAssetTotal)
     }
 
     "miner is sponsor" in {
-      val minerBalance = miner.accountBalances(miner.address)
+      val minerBalance = miner.balanceDetails(miner.address)
       val firstMinersAsset =
         miner
           .issue(
@@ -531,19 +531,19 @@ class SponsorshipSuite
       nodes.waitForHeightAriseAndTxPresent(minerFirstTransferTxId)
       nodes.waitForHeightAriseAndTxPresent(minerSecondTransferTxId)
 
-      miner.assertBalances(miner.address, minerBalance._1)
+      miner.assertBalances(miner.address, minerBalance.regular)
       val aliceFirstTransferWavesId  = sender.transfer(alice, bobAddress, transferAmount, SmallFee, None, Some(firstMinersAsset)).id
       val aliceSecondTransferWavesId = sender.transfer(alice, bobAddress, transferAmount, SmallFee, None, Some(secondMinersAsset)).id
       nodes.waitForHeightAriseAndTxPresent(aliceFirstTransferWavesId)
       nodes.waitForHeightAriseAndTxPresent(aliceSecondTransferWavesId)
 
-      miner.assertBalances(miner.address, minerBalance._1)
+      miner.assertBalances(miner.address, minerBalance.regular)
       miner.assertAssetBalance(miner.address, firstMinersAsset, sponsorAssetTotal / 2 + SmallFee)
       miner.assertAssetBalance(miner.address, secondMinersAsset, sponsorAssetTotal / 2 + SmallFee)
     }
 
     "tx is declined if sponsor has not enough effective balance to pay fee" in {
-      val sponsorEffectiveBalance = sender.accountBalances(sponsorAddress)._2
+      val sponsorEffectiveBalance = sender.balanceDetails(sponsorAddress).effective
       sender.lease(sponsor, bobAddress, sponsorEffectiveBalance - leasingFee, leasingFee, waitForTx = true).id
       assertBadRequestAndMessage(
         sender.transfer(alice, bobAddress, 10 * Token, LargeFee, Some(firstSponsorAssetId), Some(firstSponsorAssetId)),

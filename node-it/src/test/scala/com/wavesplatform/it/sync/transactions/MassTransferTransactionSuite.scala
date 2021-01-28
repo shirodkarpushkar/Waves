@@ -4,7 +4,7 @@ import com.wavesplatform.account.{AddressScheme, Alias}
 import com.wavesplatform.api.http.requests.{MassTransferRequest, SignedMassTransferRequest}
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
-import com.wavesplatform.it.api.MassTransferTransactionInfo
+import com.wavesplatform.it.api.{BalanceDetails, MassTransferTransactionInfo}
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync._
 import com.wavesplatform.it.transactions.BaseTransactionSuite
@@ -21,7 +21,6 @@ import scala.util.Random
 
 class MassTransferTransactionSuite extends BaseTransactionSuite {
 
-
   protected override def beforeAll(): Unit = {
     super.beforeAll()
     // explicitly create an address in node's wallet
@@ -32,8 +31,8 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
 
   test("asset mass transfer changes asset balances and sender's.waves balance is decreased by fee.") {
     for (v <- massTransferTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
 
       val transfers = List(Transfer(secondAddress, 1000))
       val assetId   = sender.issue(firstKeyPair, "name", "description", issueAmount, 8, reissuable = false, issueFee).id
@@ -56,10 +55,10 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
 
   test("waves mass transfer changes waves balances") {
     for (v <- massTransferTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
-      val (balance3, eff3) = miner.accountBalances(thirdAddress)
-      val transfers        = List(Transfer(secondAddress, 1000), Transfer(thirdAddress, 2 * 1000))
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
+      val BalanceDetails(_, balance3, _, _, eff3) = miner.balanceDetails(thirdAddress)
+      val transfers                               = List(Transfer(secondAddress, 1000), Transfer(thirdAddress, 2 * 1000))
 
       val massTransferTransactionFee = calcMassTransferFee(transfers.size)
       val transferId                 = sender.massTransfer(firstKeyPair, transfers, massTransferTransactionFee, version = v).id
@@ -77,9 +76,9 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
 
   test("can not make mass transfer without having enough waves") {
     for (v <- massTransferTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
-      val transfers        = List(Transfer(secondAddress, balance1 / 2), Transfer(thirdAddress, balance1 / 2))
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
+      val transfers                               = List(Transfer(secondAddress, balance1 / 2), Transfer(thirdAddress, balance1 / 2))
 
       assertBadRequestAndResponse(
         sender.massTransfer(firstKeyPair, transfers, calcMassTransferFee(transfers.size), version = v),
@@ -94,9 +93,9 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
 
   test("can not make mass transfer when fee less then required") {
     for (v <- massTransferTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
-      val transfers        = List(Transfer(secondAddress, transferAmount))
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
+      val transfers                               = List(Transfer(secondAddress, transferAmount))
 
       assertBadRequestAndResponse(
         sender.massTransfer(firstKeyPair, transfers, calcMassTransferFee(transfers.size) - 1, version = v),
@@ -110,9 +109,9 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
 
   test("can not make mass transfer without having enough of effective balance") {
     for (v <- massTransferTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
-      val transfers        = List(Transfer(secondAddress, balance1 - 2 * minFee))
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
+      val transfers                               = List(Transfer(secondAddress, balance1 - 2 * minFee))
 
       val leaseTxId = sender.lease(firstKeyPair, secondAddress, leasingAmount, minFee).id
       nodes.waitForHeightAriseAndTxPresent(leaseTxId)
@@ -134,10 +133,10 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
 
     for (v <- massTransferTxSupportedVersions) {
       def request(
-                   transfers: List[Transfer] = List(Transfer(secondAddress, transferAmount)),
-                   fee: Long = calcMassTransferFee(1),
-                   timestamp: Long = System.currentTimeMillis,
-                   attachment: Array[Byte] = Array.emptyByteArray
+          transfers: List[Transfer] = List(Transfer(secondAddress, transferAmount)),
+          fee: Long = calcMassTransferFee(1),
+          timestamp: Long = System.currentTimeMillis,
+          attachment: Array[Byte] = Array.emptyByteArray
       ): (SignedMassTransferRequest, Option[ByteStr]) = {
         val txEi = for {
           parsedTransfers <- MassTransferTransaction.parseTransfersList(transfers)
@@ -168,7 +167,7 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
         (req, idOpt)
       }
 
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
       val invalidTransfers = Seq(
         (request(timestamp = System.currentTimeMillis + 1.day.toMillis), "Transaction timestamp .* is more than .*ms in the future"),
         (
@@ -193,9 +192,9 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
 
   test("huuuge transactions are allowed") {
     for (v <- massTransferTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val fee              = calcMassTransferFee(MaxTransferCount)
-      val amount           = (balance1 - fee) / MaxTransferCount
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val fee                                     = calcMassTransferFee(MaxTransferCount)
+      val amount                                  = (balance1 - fee) / MaxTransferCount
 
       val transfers  = List.fill(MaxTransferCount)(Transfer(firstAddress, amount))
       val transferId = sender.massTransfer(firstKeyPair, transfers, fee, version = v).id
@@ -242,8 +241,8 @@ class MassTransferTransactionSuite extends BaseTransactionSuite {
 
   test("try to make mass transfer if use alias for address") {
     for (v <- massTransferTxSupportedVersions) {
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
-      val (balance2, eff2) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
 
       val alias = s"masstest_alias$v"
 

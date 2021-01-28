@@ -318,7 +318,7 @@ class RideV4ActivationSuite extends BaseTransactionSuite with CancelAfterFailure
     nodes.waitForHeightAriseAndTxPresent(reissueTxId)
   }
   test("can't attach unavailable payment even if V4 DApp returns its enough amount") {
-    val balance = sender.accountBalances(callerAcc.toAddress.toString)._1
+    val balance = sender.balance(callerAcc.toAddress.toString).balance
 
     assertApiError(
       sender.invokeScript(callerAcc, smartAccV4.toAddress.toString, Some("payBack"), payment = Seq(Payment(40, asset)))
@@ -338,7 +338,7 @@ class RideV4ActivationSuite extends BaseTransactionSuite with CancelAfterFailure
   }
 
   test("still can't attach unavailable payment if V3 DApp returns its enough amount") {
-    val balance = sender.accountBalances(callerAcc.toAddress.toString)._1
+    val balance = sender.balance(callerAcc.toAddress.toString).balance
     assertApiError(
       sender.invokeScript(callerAcc, smartAccV3.toAddress.toString, Some("payBack"), payment = Seq(Payment(40, asset)), waitForTx = true)
     )(_.statusCode shouldBe 400)

@@ -5,7 +5,7 @@ import com.wavesplatform.account.AddressScheme
 import com.wavesplatform.api.http.ApiError.StateCheckFailed
 import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.api.TransactionInfo
+import com.wavesplatform.it.api.{BalanceDetails, TransactionInfo}
 import com.wavesplatform.it.sync._
 import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
@@ -15,7 +15,7 @@ class ReissueTransactionSuite extends BaseTransactionSuite {
 
   test("asset reissue changes issuer's asset balance; issuer's waves balance is decreased by fee") {
     for (v <- reissueTxSupportedVersions) {
-      val (balance, effectiveBalance) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance, _, _, effectiveBalance) = miner.balanceDetails(firstAddress)
 
       val issuedAssetId = sender.issue(firstKeyPair, "name2", "description2", someAssetAmount, decimals = 2, reissuable = true, issueFee).id
       nodes.waitForHeightAriseAndTxPresent(issuedAssetId)
@@ -38,7 +38,7 @@ class ReissueTransactionSuite extends BaseTransactionSuite {
 
   test("can't reissue not reissuable asset") {
     for (v <- reissueTxSupportedVersions) {
-      val (balance, effectiveBalance) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance, _, _, effectiveBalance) = miner.balanceDetails(firstAddress)
 
       val issuedAssetId = sender.issue(firstKeyPair, "name2", "description2", someAssetAmount, decimals = 2, reissuable = false, issueFee).id
       nodes.waitForHeightAriseAndTxPresent(issuedAssetId)
@@ -71,7 +71,7 @@ class ReissueTransactionSuite extends BaseTransactionSuite {
 
   test("not able to reissue if cannot pay fee - insufficient funds") {
     for (v <- reissueTxSupportedVersions) {
-      val (balance, effectiveBalance) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance, _, _, effectiveBalance) = miner.balanceDetails(firstAddress)
       val reissueFee = effectiveBalance + 1.waves
 
       val issuedAssetId = sender.issue(firstKeyPair, "name4", "description4", someAssetAmount, decimals = 2, reissuable = true, issueFee).id

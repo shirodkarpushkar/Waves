@@ -2,7 +2,7 @@ package com.wavesplatform.it.sync.transactions
 
 import com.wavesplatform.account.{AddressScheme, KeyPair}
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.api.TransactionInfo
+import com.wavesplatform.it.api.{BalanceDetails, TransactionInfo}
 import com.wavesplatform.it.sync._
 import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
@@ -18,7 +18,7 @@ class AliasTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
   test("Able to send money to an alias") {
     for (v <- aliasTxSupportedVersions) {
       val alias            = randomAlias()
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
 
       val aliasTx = sender.createAlias(firstKeyPair, alias, minFee, version = v)
       nodes.waitForHeightAriseAndTxPresent(aliasTx.id)
@@ -40,7 +40,7 @@ class AliasTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
     for (v <- aliasTxSupportedVersions) {
       version = v
       val alias            = randomAlias()
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
       val aliasFee         = createAlias(firstKeyPair, alias)
       miner.assertBalances(firstAddress, balance1 - aliasFee, eff1 - aliasFee)
 
@@ -54,7 +54,7 @@ class AliasTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
       version = v
       val alias = randomAlias()
 
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
       val aliasFee         = createAlias(firstKeyPair, alias)
       assertBadRequestAndMessage(createAliasFromJson(secondKeyPair, alias, minFee, version = v), "Alias already claimed")
       miner.assertBalances(firstAddress, balance1 - aliasFee, eff1 - aliasFee)
@@ -67,7 +67,7 @@ class AliasTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
       val firstAlias  = randomAlias()
       val secondAlias = randomAlias()
 
-      val (balance1, eff1) = miner.accountBalances(secondAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(secondAddress)
 
       val aliasFeeFirstAlias = createAlias(secondKeyPair, firstAlias)
       miner.assertBalances(secondAddress, balance1 - aliasFeeFirstAlias, eff1 - aliasFeeFirstAlias)
@@ -87,7 +87,7 @@ class AliasTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
     test(s"create alias named $alias") {
       for (v <- aliasTxSupportedVersions) {
         version = v
-        val (balance1, eff1) = miner.accountBalances(secondAddress)
+        val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(secondAddress)
         val aliasFee         = createAlias(secondKeyPair, s"$alias$v")
         miner.assertBalances(secondAddress, balance1 - aliasFee, eff1 - aliasFee)
       }
@@ -117,8 +117,8 @@ class AliasTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
   test("Able to lease by alias") {
     val thirdAddressAlias = randomAlias()
 
-    val (balance1, eff1) = miner.accountBalances(firstAddress)
-    val (balance3, eff3) = miner.accountBalances(thirdAddress)
+    val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+    val BalanceDetails(_, balance3, _, _, eff3) = miner.balanceDetails(thirdAddress)
 
     val aliasFee  = createAlias(thirdKeyPair, thirdAddressAlias)
     val aliasFull = fullAliasByAddress(thirdAddress, thirdAddressAlias)
@@ -136,7 +136,7 @@ class AliasTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
   //previous test should not be commented to run this one
   test("Not able to create alias when insufficient funds") {
     for (v <- aliasTxSupportedVersions) {
-      val balance = miner.accountBalances(firstAddress)._1
+      val balance = miner.balance(firstAddress).balance
       val alias   = randomAlias()
       assertBadRequestAndMessage(
         createAliasFromJson(firstKeyPair, alias, balance + minFee, version = v),

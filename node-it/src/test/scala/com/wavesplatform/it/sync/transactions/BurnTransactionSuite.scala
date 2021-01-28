@@ -4,7 +4,7 @@ import cats.implicits._
 import com.wavesplatform.account.AddressScheme
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils._
-import com.wavesplatform.it.api.BurnTransactionInfo
+import com.wavesplatform.it.api.{BalanceDetails, BurnTransactionInfo}
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{issueAmount, issueFee, _}
 import com.wavesplatform.it.transactions.BaseTransactionSuite
@@ -19,7 +19,7 @@ class BurnTransactionSuite extends BaseTransactionSuite {
 
   test("burning assets changes issuer's asset balance; issuer's waves balance is decreased by fee") {
     for (v <- burnTxSupportedVersions) {
-      val (balance, effectiveBalance) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance, _, _, effectiveBalance) = miner.balanceDetails(firstAddress)
       val issuedAssetId =
         sender.issue(firstKeyPair, s"name+$v", "description", issueAmount, decimals, reissuable = false, fee = issueFee, waitForTx = true).id
 

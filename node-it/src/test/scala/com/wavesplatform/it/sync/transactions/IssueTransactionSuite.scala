@@ -3,7 +3,7 @@ package com.wavesplatform.it.sync.transactions
 import com.google.protobuf.ByteString
 import com.wavesplatform.account.{AddressScheme, KeyPair}
 import com.wavesplatform.api.http.ApiError.{CustomValidationError, InvalidName, NonPositiveAmount, TooBigArrayAllocation}
-import com.wavesplatform.it.api.IssueTransactionInfo
+import com.wavesplatform.it.api.{BalanceDetails, IssueTransactionInfo}
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync._
 import com.wavesplatform.it.transactions.BaseTransactionSuite
@@ -18,7 +18,7 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
     for (v <- issueTxSupportedVersions) {
       val assetName        = "myasset"
       val assetDescription = "my asset description"
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
 
       val issueTx =
         sender
@@ -38,7 +38,7 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
     for (v <- issueTxSupportedVersions) {
       val assetName        = "myasset1"
       val assetDescription = "my asset description 1"
-      val (balance1, eff1) = miner.accountBalances(firstAddress)
+      val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
 
       val issuedAssetId =
         sender
@@ -90,7 +90,7 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
     for (v <- issueTxSupportedVersions) {
       val assetName        = "myasset"
       val assetDescription = "my asset description"
-      val eff1             = miner.accountBalances(firstAddress)._2
+      val eff1             = miner.balanceDetails(firstAddress).effective
       val bigAssetFee      = eff1 + 1.waves
 
       assertApiError(sender.issue(firstKeyPair, assetName, assetDescription, someAssetAmount, 2, reissuable = false, bigAssetFee, version = v)) {

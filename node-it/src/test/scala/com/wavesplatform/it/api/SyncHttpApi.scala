@@ -201,17 +201,14 @@ object SyncHttpApi extends Assertions {
     def getWithApiKey(path: String): Response =
       sync(async(n).getWithApiKey(path))
 
-    def accountBalances(acc: String): (Long, Long) =
-      sync(async(n).accountBalances(acc))
-
     def balanceAtHeight(address: String, height: Int): Long =
       sync(async(n).balanceAtHeight(address, height))
 
     def accountsBalances(height: Option[Int], accounts: Seq[String], asset: Option[String] = None): Seq[(String, Long)] =
       sync(async(n).accountsBalances(height, accounts, asset))
 
-    def balance(address: String, confirmations: Option[Int] = None, amountsAsStrings: Boolean = false): Balance =
-      sync(async(n).balance(address, confirmations, amountsAsStrings))
+    def balance(address: String, amountsAsStrings: Boolean = false): Balance =
+      sync(async(n).balance(address, amountsAsStrings))
 
     def effectiveBalance(address: String, confirmations: Option[Int] = None, amountsAsStrings: Boolean = false): Balance =
       sync(async(n).effectiveBalance(address, confirmations, amountsAsStrings))

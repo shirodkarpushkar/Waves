@@ -133,7 +133,7 @@ class InvokeMultiplePaymentsSuite extends BaseTransactionSuite with CancelAfterF
   }
 
   test("can't attach more than balance") {
-    val wavesBalance  = sender.accountBalances(callerAddress)._1
+    val wavesBalance  = sender.balance(callerAddress).balance
     val asset1Balance = sender.assetBalance(callerAddress, asset1.id.toString).balance
 
     assertApiError(
@@ -162,7 +162,7 @@ class InvokeMultiplePaymentsSuite extends BaseTransactionSuite with CancelAfterF
   }
 
   test("can't attach leased Waves") {
-    val wavesBalance = sender.accountBalances(callerAddress)._1
+    val wavesBalance = sender.balance(callerAddress).balance
     sender.lease(caller, dAppAddress, wavesBalance - 1.waves, waitForTx = true)
 
     assertApiError(

@@ -198,43 +198,30 @@ class UpdateAssetInfoTransactionSuite extends BaseTransactionSuite with CancelAf
     assertApiError(sender.updateAssetInfo(issuer, assetId, "updatedName", "updatedDescription", minFee)) { error =>
       error.id shouldBe StateCheckFailed.Id
       error.message should include(
-        s"Can't update info of asset with id=$assetId before ${nextTermEnd + 1} block, current height=${sender.height}, minUpdateInfoInterval=$updateInterval"
+        s"Can't update info of asset with id=$assetId before $nextTermEnd block, current height=${sender.height}, minUpdateInfoInterval=$updateInterval"
       )
     }
     sender.waitForHeight(nextTermEnd)
-
-    assertApiError(sender.updateAssetInfo(issuer, assetId, "updatedName", "updatedDescription", minFee)) { error =>
-      error.id shouldBe StateCheckFailed.Id
-      error.message should include(
-        s"Can't update info of asset with id=$assetId before ${nextTermEnd + 1} block, current height=${sender.height}, minUpdateInfoInterval=$updateInterval"
-      )
-    }
   }
 
   var secondUpdateInfoHeight = 0
 
   test("able to update info of other asset after updating info of first asset") {
-    nodes.waitForHeightArise()
     val updateAssetInfoTxId = sender.updateAssetInfo(issuer, otherAssetId, "secondUpdate", "secondUpdatedDescription", minFee)._1.id
-    sender.waitForUtxIncreased(0)
-    checkUpdateAssetInfoTx(sender.utx().head, "secondUpdate", "secondUpdatedDescription")
     sender.waitForTransaction(updateAssetInfoTxId)
     secondUpdateInfoHeight = sender.transactionInfo[TransactionInfo](updateAssetInfoTxId).height
     checkUpdateAssetInfoTx(sender.blockAt(secondUpdateInfoHeight).transactions.head, "secondUpdate", "secondUpdatedDescription")
-    checkUpdateAssetInfoTx(sender.lastBlock().transactions.head, "secondUpdate", "secondUpdatedDescription")
     checkUpdateAssetInfoTx(
       sender.blockSeq(secondUpdateInfoHeight, secondUpdateInfoHeight).head.transactions.head,
       "secondUpdate",
       "secondUpdatedDescription"
     )
-    checkUpdateAssetInfoTx(sender.blockById(sender.lastBlock().id).transactions.head, "secondUpdate", "secondUpdatedDescription")
     checkUpdateAssetInfoTx(
       sender.blockSeqByAddress(miner.address, secondUpdateInfoHeight, secondUpdateInfoHeight).head.transactions.head,
       "secondUpdate",
       "secondUpdatedDescription"
     )
 
-    checkUpdateAssetInfoTxInfo(sender.transactionsByAddress(issuer.publicKey.toAddress.toString, 1).head, "secondUpdate", "secondUpdatedDescription")
     checkUpdateAssetInfoTxInfo(sender.transactionInfo[TransactionInfo](updateAssetInfoTxId), "secondUpdate", "secondUpdatedDescription")
 
     sender.assetsDetails(otherAssetId).name shouldBe "secondUpdate"
@@ -257,7 +244,7 @@ class UpdateAssetInfoTransactionSuite extends BaseTransactionSuite with CancelAf
 
     sender.waitForHeight(sender.height + updateInterval + 1, 3.minutes)
     sender.updateAssetInfo(issuer, assetId, firstUpdatedName, firstUpdatedDescription, waitForTx = true)._1.id
-    nodes.blacklistPeersAndRollback(issueHeight - 1, returnToUTX = true)
+    nodes.blacklistPeersAndRollback(issueHeight - 1)
 
     sender.waitForTransaction(assetId)
     val newIssueHeight = sender.transactionInfo[TransactionInfo](assetId).height

@@ -3,7 +3,7 @@ package com.wavesplatform.it.sync.smartcontract
 import com.typesafe.config.Config
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
-import com.wavesplatform.it.NodeConfigs
+import com.wavesplatform.it.{BaseFunSuite, NodeConfigs, RandomKeyPair}
 import com.wavesplatform.it.NodeConfigs.Default
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync._
@@ -16,7 +16,7 @@ import org.scalatest.CancelAfterFailure
 
 import scala.concurrent.duration._
 
-class EstimatorTestSuite extends BaseTransactionSuite with CancelAfterFailure {
+class EstimatorTestSuite extends BaseFunSuite {
   private val estimator = ScriptEstimatorV2
 
   private val featureHeight = 8
@@ -33,7 +33,7 @@ class EstimatorTestSuite extends BaseTransactionSuite with CancelAfterFailure {
       .buildNonConflicting()
 
   private def smartAcc  = firstKeyPair
-  private def callerAcc = secondKeyPair
+  private lazy val callerAcc = RandomKeyPair()
 
   private val accScript = ScriptCompiler
     .compile(

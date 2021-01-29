@@ -1,19 +1,16 @@
 package com.wavesplatform.it
 
-import java.io.File
-
 import com.typesafe.config.{Config, ConfigFactory}
+import com.wavesplatform.account.KeyPair
 import com.wavesplatform.it.transactions.NodesFromDocker
 import monix.eval.Coeval
 import org.scalatest._
 
+import java.io.File
 import scala.jdk.CollectionConverters._
-import scala.concurrent.ExecutionContext
 
 trait BaseSuiteLike extends ReportingTestName with NodesFromDocker with Matchers with CancelAfterFailure { this: TestSuite =>
-  protected implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
-
-  protected def miner: Node            = nodes.head
+  protected def miner: Node  = nodes.head
   protected def sender: Node = miner
 
   // protected because https://github.com/sbt/zinc/issues/292
@@ -39,8 +36,19 @@ trait BaseSuiteLike extends ReportingTestName with NodesFromDocker with Matchers
   }
 }
 
-class BaseSuite extends FreeSpec with BaseSuiteLike with BeforeAndAfterAll with BeforeAndAfterEach {
+abstract class BaseFunSuite extends FunSuite with BaseSuiteLike {
+  protected def firstAddress: String = sender.address
+  protected def firstKeyPair: KeyPair = sender.keyPair
 
+  protected def nodeConfigs: Seq[Config] =
+    NodeConfigs.newBuilder
+      .overrideBase(_.quorum(0))
+      .withDefault(1)
+      .withSpecial(_.nonMiner)
+      .buildNonConflicting()
+}
+
+class BaseSuite extends FreeSpec with BaseSuiteLike with BeforeAndAfterAll with BeforeAndAfterEach {
   protected def nodeConfigs: Seq[Config] =
     NodeConfigs.newBuilder
       .overrideBase(_.quorum(0))

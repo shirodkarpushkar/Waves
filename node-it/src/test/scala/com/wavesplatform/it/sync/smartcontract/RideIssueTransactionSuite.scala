@@ -1,22 +1,21 @@
 package com.wavesplatform.it.sync.smartcontract
 
-import java.nio.charset.StandardCharsets
-
 import com.typesafe.config.Config
 import com.wavesplatform.account.KeyPair
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
-import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.NodeConfigs.Default
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.api.TransactionInfo
 import com.wavesplatform.it.sync._
-import com.wavesplatform.it.transactions.BaseTransactionSuite
+import com.wavesplatform.it.{BaseFunSuite, NodeConfigs}
 import com.wavesplatform.lang.v1.estimator.v3.ScriptEstimatorV3
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.{Assertion, CancelAfterFailure}
+import org.scalatest.Assertion
 
-class RideIssueTransactionSuite extends BaseTransactionSuite with CancelAfterFailure {
+import java.nio.charset.StandardCharsets
+
+class RideIssueTransactionSuite extends BaseFunSuite {
   override protected def nodeConfigs: Seq[Config] =
     NodeConfigs
       .Builder(Default, 1, Seq.empty)
@@ -38,7 +37,8 @@ class RideIssueTransactionSuite extends BaseTransactionSuite with CancelAfterFai
          |   case i: IssueTransaction =>
          |     i.name        == "$assetName"         &&
          |     i.description == "$assetDescription"
-         |
+         |   case sst: SetScriptTransaction =>
+         |     true
          |   case _ =>
          |     throw("unexpected")
          | }
@@ -57,7 +57,8 @@ class RideIssueTransactionSuite extends BaseTransactionSuite with CancelAfterFai
          |   case i: IssueTransaction =>
          |     i.name        == base64'${ByteStr(assetName.getBytes(StandardCharsets.UTF_8)).base64}'        &&
          |     i.description == base64'${ByteStr(assetDescription.getBytes(StandardCharsets.UTF_8)).base64}'
-         |
+         |   case sst: SetScriptTransaction =>
+         |     true
          |   case _ =>
          |     throw("unexpected")
          | }
@@ -67,7 +68,7 @@ class RideIssueTransactionSuite extends BaseTransactionSuite with CancelAfterFai
 
   test("check issuing asset name and description using V3 and V4 script") {
     assertSuccessIssue(firstKeyPair, issueCheckV3)
-    assertSuccessIssue(secondKeyPair, issueCheckV4)
+    assertSuccessIssue(firstKeyPair, issueCheckV4)
   }
 
   def compile(script: String): String =

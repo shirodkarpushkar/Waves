@@ -1,19 +1,17 @@
 package com.wavesplatform.it.sync
 
-import java.net.URLDecoder
-
 import com.typesafe.config.Config
 import com.wavesplatform.api.http.ApiError.{CustomValidationError, TooBigArrayAllocation}
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.transactions.BaseTransactionSuite
-import com.wavesplatform.it.{NTPTime, NodeConfigs}
+import com.wavesplatform.it.{BaseFunSuite, NTPTime, NodeConfigs}
 import com.wavesplatform.state.StringDataEntry
 import com.wavesplatform.transaction.TxVersion
 import play.api.libs.json._
 
+import java.net.URLDecoder
 import scala.util.Random
 
-class AddressApiSuite extends BaseTransactionSuite with NTPTime {
+class AddressApiSuite extends BaseFunSuite with NTPTime {
   test("balance at height") {
     val address = sender.createKeyPair().toAddress.stringRepr
     sender.transfer(sender.keyPair, address, 1, waitForTx = true)

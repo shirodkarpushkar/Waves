@@ -6,13 +6,14 @@ import com.wavesplatform.api.http.TransactionsApiRoute.LeaseStatus
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.api.{BalanceDetails, TransactionInfo}
 import com.wavesplatform.it.sync._
-import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
-import org.scalatest.CancelAfterFailure
+import com.wavesplatform.it.{BaseFunSuite, RandomKeyPair}
 import play.api.libs.json.Json
 
-class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFailure {
-  private val errorMessage = "Reason: Cannot lease more than own"
+class LeasingTransactionsSuite extends BaseFunSuite {
+  private val errorMessage       = "Reason: Cannot lease more than own"
+  private lazy val secondKeyPair = RandomKeyPair()
+  private lazy val secondAddress = secondKeyPair.toAddress.toString
 
   test("leasing waves decreases lessor's eff.b. and increases lessee's eff.b.; lessor pays fee") {
     for (v <- leaseTxSupportedVersions) {
@@ -38,7 +39,7 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
 
       val eff2 = miner.balanceDetails(secondAddress).effective
 
-      assertBadRequestAndResponse(sender.lease(secondKeyPair, thirdAddress, eff2 - minFee, leasingFee = minFee, version = v), errorMessage)
+      assertBadRequestAndResponse(sender.lease(secondKeyPair, firstAddress, eff2 - minFee, leasingFee = minFee, version = v), errorMessage)
     }
   }
 
@@ -144,7 +145,7 @@ class LeasingTransactionsSuite extends BaseTransactionSuite with CancelAfterFail
       miner.assertBalances(firstAddress, balance1 - minFee, eff1 - leasingAmount - minFee)
       miner.assertBalances(secondAddress, balance2, eff2 + leasingAmount)
 
-      assertBadRequestAndResponse(sender.cancelLease(thirdKeyPair, createdLeaseTxId, minFee), "LeaseTransaction was leased by other sender")
+      assertBadRequestAndResponse(sender.cancelLease(secondKeyPair, createdLeaseTxId, minFee), "LeaseTransaction was leased by other sender")
     }
   }
 

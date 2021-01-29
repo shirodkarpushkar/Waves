@@ -4,6 +4,7 @@ import cats.implicits._
 import com.wavesplatform.account.AddressScheme
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils._
+import com.wavesplatform.it.{BaseFunSuite, RandomKeyPair}
 import com.wavesplatform.it.api.{BalanceDetails, BurnTransactionInfo}
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{issueAmount, issueFee, _}
@@ -13,7 +14,13 @@ import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.assets.BurnTransaction
 import play.api.libs.json.Json
 
-class BurnTransactionSuite extends BaseTransactionSuite {
+class BurnTransactionSuite extends BaseFunSuite {
+
+  private lazy val secondKeyPair = RandomKeyPair()
+  private lazy val thirdKeyPair = RandomKeyPair()
+
+  private lazy val secondAddress = secondKeyPair.toAddress.toString
+  private lazy val thirdAddress = thirdKeyPair.toAddress.toString
 
   private val decimals: Byte = 2
 

@@ -6,18 +6,17 @@ import com.wavesplatform.block.Block
 import com.wavesplatform.common.utils.Base58
 import com.wavesplatform.crypto
 import com.wavesplatform.features.BlockchainFeatures
-import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.NodeConfigs.Default
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.api.TransactionInfo
 import com.wavesplatform.it.sync._
-import com.wavesplatform.it.transactions.BaseTransactionSuite
+import com.wavesplatform.it.{BaseFunSuite, NodeConfigs, RandomKeyPair}
 import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.assets.exchange.{AssetPair, Order}
 
 import scala.concurrent.duration._
 
-class VRFProtobufActivationSuite extends BaseTransactionSuite {
+class VRFProtobufActivationSuite extends BaseFunSuite {
   val activationHeight = 9
   val updateInterval   = 3
   override protected def nodeConfigs: Seq[Config] =
@@ -28,8 +27,8 @@ class VRFProtobufActivationSuite extends BaseTransactionSuite {
       .overrideBase(_.raw(s"waves.blockchain.custom.functionality.min-asset-info-update-interval = $updateInterval"))
       .buildNonConflicting()
 
-  private def senderAcc     = firstKeyPair
-  private def recipientAcc  = secondKeyPair
+  private def senderAcc             = firstKeyPair
+  private lazy val recipientAcc     = RandomKeyPair()
   private var assetId               = ""
   private var otherAssetId          = ""
   private var secondUpdateAssetTxId = ""

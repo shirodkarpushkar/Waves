@@ -5,23 +5,22 @@ import com.wavesplatform.common.utils.{Base58, EitherExt2}
 import com.wavesplatform.crypto
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{minFee, setScriptFee, transferAmount}
-import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
+import com.wavesplatform.it.{BaseFunSuite, RandomKeyPair}
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Proofs
 import com.wavesplatform.transaction.lease.LeaseTransaction
 import com.wavesplatform.transaction.smart.SetScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class BigStringSuite extends BaseTransactionSuite with CancelAfterFailure {
-  private def acc0 = firstKeyPair
-  private def acc1 = secondKeyPair
-  private def acc2 = thirdKeyPair
+class BigStringSuite extends BaseFunSuite {
+  private def acc0      = firstKeyPair
+  private lazy val acc1 = RandomKeyPair()
+  private lazy val acc2 = RandomKeyPair()
 
   test("set contract, make leasing and cancel leasing") {
     val bd1 = miner.balanceDetails(acc0.toAddress.toString)
-    val bd2 = miner.balanceDetails(thirdAddress)
+    val bd2 = miner.balanceDetails(acc2.toAddress.toString)
 
     val txId = sender.transfer(sender.keyPair, acc0.toAddress.toString, 10 * transferAmount, minFee).id
     nodes.waitForHeightAriseAndTxPresent(txId)
@@ -81,7 +80,7 @@ class BigStringSuite extends BaseTransactionSuite with CancelAfterFailure {
     nodes(0).findTransactionInfo(leasingId) shouldBe None
 
     miner.assertBalances(firstAddress, bd1.regular + 10 * transferAmount - setScriptFee, bd1.effective + 10 * transferAmount - setScriptFee)
-    miner.assertBalances(thirdAddress, bd2.regular, bd2.effective)
+    miner.assertBalances(acc2.toAddress.toString, bd2.regular, bd2.effective)
 
   }
 }

@@ -2,10 +2,10 @@ package com.wavesplatform.it.sync
 
 import com.wavesplatform.account.KeyPair
 import com.wavesplatform.common.utils.Base58
+import com.wavesplatform.it.BaseFunSuite
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.api.{Transaction, TransactionInfo}
 import com.wavesplatform.it.sync.transactions.OverflowBlock
-import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.state.IntegerDataEntry
 import com.wavesplatform.transaction.assets.exchange.{AssetPair, Order}
 import com.wavesplatform.transaction.transfer.MassTransferTransaction.Transfer
@@ -15,7 +15,7 @@ import org.scalatest
 import org.scalatest.Assertion
 import play.api.libs.json.{JsString, JsValue, Json}
 
-class AmountAsStringSuite extends BaseTransactionSuite with OverflowBlock {
+class AmountAsStringSuite extends BaseFunSuite with OverflowBlock {
 
   val (headerName, headerValue) = ("Accept", "application/json;large-significand-format=string")
 
@@ -38,7 +38,7 @@ class AmountAsStringSuite extends BaseTransactionSuite with OverflowBlock {
 
   test("amount as string in addresses api") {
     val firstBalance = sender.balanceDetails(firstAddress)
-    sender.wavesBalance(firstAddress, amountsAsStrings = true)shouldBe firstBalance.regular
+    sender.wavesBalance(firstAddress, amountsAsStrings = true) shouldBe firstBalance.regular
 
     val balanceDetails = sender.balanceDetails(firstAddress, amountsAsStrings = true)
     balanceDetails.regular shouldBe firstBalance.regular
@@ -191,7 +191,7 @@ class AmountAsStringSuite extends BaseTransactionSuite with OverflowBlock {
       tx.transfers.get.head.amount shouldBe transferAmount
       tx.totalAmount shouldBe Some(transferAmount)
     }
-    val (transfers, massTransferFee) = (List(Transfer(secondAddress, transferAmount)), calcMassTransferFee(1))
+    val (transfers, massTransferFee) = (List(Transfer(firstAddress, transferAmount)), calcMassTransferFee(1))
     val massTransferTx               = sender.massTransfer(firstKeyPair, transfers, massTransferFee, amountsAsStrings = true)
     checkMassTransferTx(massTransferTx)
 

@@ -4,16 +4,16 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.wavesplatform.api.http.TransactionsApiRoute.LeaseStatus
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync._
-import com.wavesplatform.it.transactions.BaseTransactionSuite
-import org.scalatest.CancelAfterFailure
+import com.wavesplatform.it.{BaseFunSuite, RandomKeyPair}
 import play.api.libs.json.Json
 
-class LeaseStatusTestSuite extends BaseTransactionSuite with CancelAfterFailure {
+class LeaseStatusTestSuite extends BaseFunSuite {
   import LeaseStatusTestSuite._
 
   override protected def nodeConfigs: Seq[Config] = Configs
 
   test("verification of leasing status") {
+    val secondAddress    = RandomKeyPair().toAddress.toString
     val createdLeaseTxId = sender.lease(firstKeyPair, secondAddress, leasingAmount, leasingFee = minFee).id
     nodes.waitForHeightAriseAndTxPresent(createdLeaseTxId)
     val status = getStatus(createdLeaseTxId)

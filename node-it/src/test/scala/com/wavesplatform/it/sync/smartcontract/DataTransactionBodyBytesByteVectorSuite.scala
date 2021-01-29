@@ -4,19 +4,18 @@ import com.typesafe.config.Config
 import com.wavesplatform.account.KeyPair
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
-import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.api.TransactionInfo
 import com.wavesplatform.it.sync.{setScriptFee, _}
-import com.wavesplatform.it.transactions.BaseTransactionSuite
+import com.wavesplatform.it.{BaseFunSuite, NodeConfigs}
 import com.wavesplatform.lang.v1.compiler.Terms
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.state.{BinaryDataEntry, DataEntry}
 import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 
-class DataTransactionBodyBytesByteVectorSuite extends BaseTransactionSuite {
-  private def compile(scriptText: String) =
+class DataTransactionBodyBytesByteVectorSuite extends BaseFunSuite {
+  private def compile(scriptText: String): String =
     ScriptCompiler.compile(scriptText, ScriptEstimatorV2).explicitGet()._1.bytes().base64
 
   override protected def nodeConfigs: Seq[Config] =
@@ -35,12 +34,13 @@ class DataTransactionBodyBytesByteVectorSuite extends BaseTransactionSuite {
          |{-# CONTENT_TYPE EXPRESSION #-}
          |
          | match tx {
-         |    case dtx: DataTransaction =>
-         |      dtx.bodyBytes.size() == $maxDataTxV1bodyBytesSize &&
-         |      dtx.data.size() == 5
-         |
+         |   case dtx: DataTransaction =>
+         |     dtx.bodyBytes.size() == $maxDataTxV1bodyBytesSize &&
+         |     dtx.data.size() == 5
+         |   case sst: SetScriptTransaction =>
+         |     true
          |   case _ =>
-         |      throw("unexpected")
+         |     throw("unexpected")
          | }
          |
        """.stripMargin
@@ -57,7 +57,8 @@ class DataTransactionBodyBytesByteVectorSuite extends BaseTransactionSuite {
          |     dtx.bodyBytes.size() == ${Terms.DataTxMaxProtoBytes}         &&
          |     dtx.data.size() == 6                                         &&
          |     sigVerify(dtx.bodyBytes, dtx.proofs[0], dtx.senderPublicKey)
-         |
+         |   case sst: SetScriptTransaction =>
+         |     true
          |  case _ =>
          |     throw("unexpected")
          | }
@@ -79,7 +80,7 @@ class DataTransactionBodyBytesByteVectorSuite extends BaseTransactionSuite {
 
   test("filled data transaction body bytes") {
     checkByteVectorLimit(firstKeyPair, maxDataEntriesV1, scriptV3, TxVersion.V1)
-    checkByteVectorLimit(secondKeyPair, maxDataEntriesV2, scriptV4, TxVersion.V2)
+    checkByteVectorLimit(firstKeyPair, maxDataEntriesV2, scriptV4, TxVersion.V2)
   }
 
   private def checkByteVectorLimit(address: KeyPair, data: List[BinaryDataEntry], script: String, version: TxVersion) = {

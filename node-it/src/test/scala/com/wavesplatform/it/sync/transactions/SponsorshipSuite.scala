@@ -133,7 +133,7 @@ class SponsorshipSuite
         sender.assertAssetBalance(sponsorAddress, sponsorAssetId, sponsorAssetTotal / 2)
         sender.assertAssetBalance(aliceAddress, sponsorAssetId, sponsorAssetTotal / 2)
 
-        val assetInfo = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
+        val assetInfo = sender.portfolio(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
         assetInfo.minSponsoredAssetFee shouldBe Some(Token)
         assetInfo.sponsorBalance shouldBe Some(sender.balanceDetails(sponsorAddress).effective)
       }
@@ -223,8 +223,8 @@ class SponsorshipSuite
       val sponsorLeaseSomeWaves = sender.lease(sponsor, bobAddress, leasingAmount, leasingFee).id
       nodes.waitForHeightAriseAndTxPresent(sponsorLeaseSomeWaves)
       val sponsorEffectiveBalance   = sender.balanceDetails(sponsorAddress).effective
-      val aliceFirstSponsorAssetBalance  = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == firstSponsorAssetId).head
-      val aliceSecondSponsorAssetBalance = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == secondSponsorAssetId).head
+      val aliceFirstSponsorAssetBalance  = sender.portfolio(aliceAddress).balances.filter(_.assetId == firstSponsorAssetId).head
+      val aliceSecondSponsorAssetBalance = sender.portfolio(aliceAddress).balances.filter(_.assetId == secondSponsorAssetId).head
       aliceFirstSponsorAssetBalance.minSponsoredAssetFee shouldBe Some(minSponsorFee)
       aliceSecondSponsorAssetBalance.minSponsoredAssetFee shouldBe Some(minSponsorFee)
       aliceFirstSponsorAssetBalance.sponsorBalance shouldBe Some(sponsorEffectiveBalance)
@@ -262,7 +262,7 @@ class SponsorshipSuite
 
       "check asset details info" in {
         for (sponsorAssetId <- Seq(firstSponsorAssetId, secondSponsorAssetId)) {
-          val assetInfo = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
+          val assetInfo = sender.portfolio(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
           assetInfo.minSponsoredAssetFee shouldBe None
           assetInfo.sponsorBalance shouldBe None
         }
@@ -313,7 +313,7 @@ class SponsorshipSuite
         nodes.waitForHeightAriseAndTxPresent(setAssetSponsoredTx1)
         nodes.waitForHeightAriseAndTxPresent(setAssetSponsoredTx2)
         for (sponsorAssetId <- Seq(firstSponsorAssetId, secondSponsorAssetId)) {
-          val assetInfo = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
+          val assetInfo = sender.portfolio(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
           assetInfo.minSponsoredAssetFee shouldBe Some(Token / 2)
           assetInfo.sponsorBalance shouldBe Some(sender.balanceDetails(sponsorAddress).effective)
         }
@@ -365,7 +365,7 @@ class SponsorshipSuite
         nodes.waitForTransaction(setAssetSponsoredTx2)
 
         for (sponsorAssetId <- Seq(firstSponsorAssetId, secondSponsorAssetId)) {
-          val assetInfo = sender.assetsBalance(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
+          val assetInfo = sender.portfolio(aliceAddress).balances.filter(_.assetId == sponsorAssetId).head
           assetInfo.minSponsoredAssetFee shouldBe Some(LargeFee)
           assetInfo.sponsorBalance shouldBe Some(sender.balanceDetails(sponsorAddress).effective)
         }

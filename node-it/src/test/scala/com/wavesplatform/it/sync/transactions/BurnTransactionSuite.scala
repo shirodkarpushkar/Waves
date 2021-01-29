@@ -50,7 +50,7 @@ class BurnTransactionSuite extends BaseFunSuite {
       assert(!details2.reissuable)
       assert(details2.quantity == issueAmount - issueAmount / 2)
 
-      val assetOpt = miner.assetsBalance(firstAddress).balances.find(_.assetId == issuedAssetId)
+      val assetOpt = miner.portfolio(firstAddress).balances.find(_.assetId == issuedAssetId)
       assert(assetOpt.exists(_.balance == issueAmount / 2))
 
       // burn the rest and check again
@@ -61,7 +61,7 @@ class BurnTransactionSuite extends BaseFunSuite {
       assert(details3.quantity == 0)
       assert(details1.minSponsoredAssetFee.isEmpty)
 
-      val assetOptRest = miner.assetsBalance(firstAddress).balances.find(_.assetId == issuedAssetId)
+      val assetOptRest = miner.portfolio(firstAddress).balances.find(_.assetId == issuedAssetId)
       assert(assetOptRest.isEmpty)
     }
 

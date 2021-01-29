@@ -233,8 +233,8 @@ object SyncHttpApi extends Assertions {
     def addressScriptInfo(address: String): AddressScriptInfo =
       sync(async(n).scriptInfo(address))
 
-    def assetsBalance(address: String, amountsAsStrings: Boolean = false): FullAssetsInfo =
-      sync(async(n).assetsBalance(address, amountsAsStrings))
+    def portfolio(address: String, amountsAsStrings: Boolean = false): AssetBalances =
+      sync(async(n).portfolio(address, amountsAsStrings))
 
     def nftList(address: String, limit: Int, maybeAfter: Option[String] = None, amountsAsStrings: Boolean = false): Seq[NFTAssetInfo] =
       sync(async(n).nftList(address, limit, maybeAfter, amountsAsStrings))

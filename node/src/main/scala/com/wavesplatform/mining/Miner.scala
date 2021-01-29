@@ -64,8 +64,9 @@ class MinerImpl(
   private[this] val minMicroBlockDurationMills = minerSettings.minMicroBlockAge.toMillis
   private[this] val blockchainSettings         = settings.blockchainSettings
 
-  private[this] val scheduledAttempts = SerialCancelable()
-  private[this] val microBlockAttempt = SerialCancelable()
+  // initializaed with null so that isCanceled returns true
+  private[this] val scheduledAttempts = SerialCancelable(null)
+  private[this] val microBlockAttempt = SerialCancelable(null)
 
   @volatile
   private[this] var debugStateRef: MinerDebugInfo.State = MinerDebugInfo.Disabled
@@ -293,7 +294,7 @@ class MinerImpl(
     }
   }
 
-  def scheduleMining(tempBlockchain: Option[Blockchain]): Unit = {
+  def scheduleMining(tempBlockchain: Option[Blockchain]): Unit = if (tempBlockchain.nonEmpty || scheduledAttempts.isCanceled) {
     Miner.blockMiningStarted.increment()
 
     val nonScriptedAccounts = wallet.privateKeyAccounts.filterNot(kp => tempBlockchain.getOrElse(blockchainUpdater).hasAccountScript(kp.toAddress))

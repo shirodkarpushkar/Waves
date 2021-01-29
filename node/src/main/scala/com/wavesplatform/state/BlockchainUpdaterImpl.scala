@@ -434,7 +434,7 @@ class BlockchainUpdaterImpl(
 
     notifyChangedSpendable(prevNgState, ngState)
     publishLastBlockInfo()
-    miner.scheduleMining()
+    miner.scheduleMining(Some(this))
     result
   }
 

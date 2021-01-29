@@ -173,7 +173,7 @@ class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailur
 
       val prevBalance      = sender.wavesBalance(caller.toAddress.toString)
       val prevAssetBalance = sender.assetBalance(contractAddress, smartAsset)
-      val prevAssets       = sender.assetsBalance(contractAddress)
+      val prevAssets       = sender.portfolio(contractAddress)
 
       overflowBlock()
       sendTxsAndThenPriorityTx(
@@ -186,7 +186,7 @@ class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailur
 
         sender.wavesBalance(caller.toAddress.toString) shouldBe prevBalance - txs.size * invokeFee
         sender.assetBalance(contractAddress, smartAsset) shouldBe prevAssetBalance
-        sender.assetsBalance(contractAddress).balances should contain theSameElementsAs prevAssets.balances
+        sender.portfolio(contractAddress).balances should contain theSameElementsAs prevAssets.balances
 
         val minFee        = if (typeName == "issue") invokeFee + issueFee else invokeFee + smartFee
         val scriptInvoked = if (typeName == "issue") 0 else 1
@@ -212,7 +212,7 @@ class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailur
 
     val prevBalance      = sender.wavesBalance(caller.toAddress.toString)
     val prevAssetBalance = sender.assetBalance(contractAddress, smartAsset)
-    val prevAssets       = sender.assetsBalance(contractAddress).balances.map(_.assetId)
+    val prevAssets       = sender.portfolio(contractAddress).balances.map(_.assetId)
 
     sendTxsAndThenPriorityTx(
       _ => sender.invokeScript(caller, contractAddress, Some("tikTok"), fee = invokeFee)._1.id,
@@ -225,7 +225,7 @@ class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailur
 
       sender.wavesBalance(caller.toAddress.toString) shouldBe prevBalance - txs.size * invokeFee
       sender.assetBalance(contractAddress, smartAsset) shouldBe prevAssetBalance.copy(balance = prevAssetBalance.balance + reissued)
-      sender.assetsBalance(contractAddress).balances.map(_.assetId) should contain theSameElementsAs prevAssets
+      sender.portfolio(contractAddress).balances.map(_.assetId) should contain theSameElementsAs prevAssets
 
       failed.foreach { s =>
         checkStateChange(sender.debugStateChanges(s.id), 3, "Transaction is not allowed by script of the asset")
@@ -256,7 +256,7 @@ class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailur
     val prevBalance             = sender.wavesBalance(caller.toAddress.toString)
     val prevAssetBalance        = sender.assetBalance(contractAddress, smartAsset)
     val prevPaymentAssetBalance = sender.assetBalance(caller.toAddress.toString, paymentAsset)
-    val prevAssets              = sender.assetsBalance(contractAddress).balances.map(_.assetId)
+    val prevAssets              = sender.portfolio(contractAddress).balances.map(_.assetId)
 
     sendTxsAndThenPriorityTx(
       _ =>
@@ -284,7 +284,7 @@ class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailur
 
       val includePaymentAsset = if (txs.size > failed.size) List(paymentAsset) else List.empty
       sender
-        .assetsBalance(contractAddress)
+        .portfolio(contractAddress)
         .balances
         .map(_.assetId) should contain theSameElementsAs prevAssets ++ includePaymentAsset
       sender.assetBalance(caller.toAddress.toString, paymentAsset) shouldBe prevPaymentAssetBalance.copy(

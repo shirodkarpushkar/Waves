@@ -3,7 +3,8 @@ package com.wavesplatform.it.sync
 import com.wavesplatform.api.http.ApiError.TransactionNotAllowedByAccountScript
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils._
-import com.wavesplatform.it.BaseFunSuite
+import com.wavesplatform.it.{BaseFunSuite, RandomKeyPair}
+import com.wavesplatform.it.util._
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.state.BinaryDataEntry
@@ -20,11 +21,14 @@ class ScriptLogSuite extends BaseFunSuite {
 
   val ENOUGH_FEE: Long = 12900000L
 
+  private lazy val scriptedKP      = RandomKeyPair()
+  private lazy val scriptedAddress = scriptedKP.toAddress.toString
+
   lazy val scriptSrc: String =
     s"""
-       |let self = Address(base58'$firstAddress')
+       |let self = Address(base58'$scriptedAddress')
        |
-      |match tx {
+       |match tx {
        |	case dtx: DataTransaction =>
        |		let v00 = extract(getBinary(self, "k0"))
        |		let v01 = extract(getBinary(self, "k1"))
@@ -53,7 +57,7 @@ class ScriptLogSuite extends BaseFunSuite {
        |
        |	case _ => false
        |}
-    """.stripMargin
+       |""".stripMargin
 
   test("set contract, put a lot of data, invoke test") {
 
@@ -64,11 +68,11 @@ class ScriptLogSuite extends BaseFunSuite {
         BinaryDataEntry(s"k$i", ByteStr(bytes))
       }).toList
 
-    sender.putData(firstKeyPair, data, ENOUGH_FEE, waitForTx = true).id
+    sender.putData(scriptedKP, data, ENOUGH_FEE, waitForTx = true).id
 
     val script = ScriptCompiler(scriptSrc, isAssetScript = false, ScriptEstimatorV2).explicitGet()._1
     val setScriptTransaction = SetScriptTransaction
-      .selfSigned(1.toByte, firstKeyPair, Some(script), setScriptFee, System.currentTimeMillis())
+      .selfSigned(1.toByte, scriptedKP, Some(script), setScriptFee, System.currentTimeMillis())
       .explicitGet()
 
     val sstx = sender.signedBroadcast(setScriptTransaction.json()).id
@@ -83,9 +87,9 @@ class ScriptLogSuite extends BaseFunSuite {
       DataTransaction
         .selfSigned(
           1.toByte,
-          firstKeyPair,
+          scriptedKP,
           List(
-            BinaryDataEntry("pk", firstKeyPair.publicKey),
+            BinaryDataEntry("pk", scriptedKP.publicKey),
             BinaryDataEntry("sig", ByteStr(signature))
           ),
           ENOUGH_FEE,
@@ -110,5 +114,10 @@ class ScriptLogSuite extends BaseFunSuite {
       }
 
     Await.result(result, 1.minute) shouldBe true
+  }
+
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    sender.transfer(sender.keyPair, scriptedAddress, 1000.waves, minFee, waitForTx = true)
   }
 }

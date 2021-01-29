@@ -339,7 +339,7 @@ class IssueReissueBurnAssetSuite extends BaseSuite {
 
       sender.assertAssetBalance(addressStr, assetA, simpleReissuableAsset.quantity)
       sender.assetBalance(addressStr, assetB).balance shouldBe 0L
-      sender.assetsBalance(addressStr).balances.map(_.assetId).toSet shouldBe Set(assetA)
+      sender.portfolio(addressStr).balances.map(_.assetId).toSet shouldBe Set(assetA)
       sender.nftList(addressStr, 10) shouldBe empty
     }
   }

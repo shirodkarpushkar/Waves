@@ -65,7 +65,7 @@ class SponsorFeeActionSuite extends BaseSuite {
       sponsoredAssetId = stateChanges.head.sponsorFees.head.assetId
       miner.assetsDetails(sponsoredAssetId).minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
 
-      val dAppBalance = miner.assetsBalance(globalDAppAddress).balances.head
+      val dAppBalance = miner.portfolio(globalDAppAddress).balances.head
       dAppBalance.minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
       dAppBalance.sponsorBalance shouldBe Some(miner.wavesBalance(globalDAppAddress))
     }
@@ -173,7 +173,7 @@ class SponsorFeeActionSuite extends BaseSuite {
 
       miner.assetsDetails(sponsoredAssetId).minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
 
-      val dAppBalance = miner.assetsBalance(dAppAddress).balances.map(b => (b.assetId, b)).toMap
+      val dAppBalance = miner.portfolio(dAppAddress).balances.map(b => (b.assetId, b)).toMap
       dAppBalance(sponsoredAssetId).minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
       dAppBalance(sponsoredAssetId).sponsorBalance shouldBe Some(miner.wavesBalance(dAppAddress))
       dAppBalance(cancelledAssetId).minSponsoredAssetFee shouldBe None
@@ -230,7 +230,7 @@ class SponsorFeeActionSuite extends BaseSuite {
 
       miner.assetsDetails(assetId).minSponsoredAssetFee shouldBe Some(lastMinSponsoredAssetFee)
 
-      val dAppBalance = miner.assetsBalance(dAppAddress).balances.head
+      val dAppBalance = miner.portfolio(dAppAddress).balances.head
       dAppBalance.minSponsoredAssetFee shouldBe Some(lastMinSponsoredAssetFee)
       dAppBalance.sponsorBalance shouldBe Some(miner.wavesBalance(dAppAddress))
     }
@@ -277,7 +277,7 @@ class SponsorFeeActionSuite extends BaseSuite {
 
       miner.assetsDetails(assetId).minSponsoredAssetFee shouldBe None
 
-      val dAppBalance = miner.assetsBalance(dAppAddress).balances.head
+      val dAppBalance = miner.portfolio(dAppAddress).balances.head
       dAppBalance.minSponsoredAssetFee shouldBe None
       dAppBalance.sponsorBalance shouldBe None
     }
@@ -376,7 +376,7 @@ class SponsorFeeActionSuite extends BaseSuite {
             sponsorFee.minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
 
             miner.assetsDetails(issueAssetId).minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
-            val dAppBalance = miner.assetsBalance(dAppAddress).balances.find(_.assetId == issueAssetId).get
+            val dAppBalance = miner.portfolio(dAppAddress).balances.find(_.assetId == issueAssetId).get
             dAppBalance.minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
             dAppBalance.sponsorBalance shouldBe Some(miner.wavesBalance(dAppAddress))
         }
@@ -524,7 +524,7 @@ class SponsorFeeActionSuite extends BaseSuite {
       nodes.waitForHeight(miner.height + 1)
 
       miner.assetsDetails(assetId).minSponsoredAssetFee shouldBe None
-      val dAppBalance = miner.assetsBalance(dApp).balances.head
+      val dAppBalance = miner.portfolio(dApp).balances.head
       dAppBalance.assetId shouldBe assetId
       dAppBalance.minSponsoredAssetFee shouldBe None
       dAppBalance.sponsorBalance shouldBe None
@@ -544,7 +544,7 @@ class SponsorFeeActionSuite extends BaseSuite {
       nodes.waitForTransaction(invokeTx2._1.id)
 
       miner.assetsDetails(assetId).minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
-      val dAppBalance = miner.assetsBalance(dAppAddress).balances.head
+      val dAppBalance = miner.portfolio(dAppAddress).balances.head
       dAppBalance.assetId shouldBe assetId
       dAppBalance.minSponsoredAssetFee shouldBe Some(minSponsoredAssetFee)
       dAppBalance.sponsorBalance shouldBe Some(miner.wavesBalance(dAppAddress))

@@ -10,8 +10,8 @@ import com.wavesplatform.transaction.smart.script.ScriptCompiler
 import org.scalatest.FunSuite
 
 class UtilsEstimatorToggleSuite extends FunSuite with BaseSuiteLike {
-  val estimatorV2ActivationHeight = 5
-  val estimatorV3ActivationHeight = 8
+  val estimatorV2ActivationHeight = 10
+  val estimatorV3ActivationHeight = 15
 
   override protected def nodeConfigs: Seq[Config] =
     NodeConfigs

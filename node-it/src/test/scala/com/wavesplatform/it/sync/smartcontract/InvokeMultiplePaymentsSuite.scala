@@ -26,9 +26,8 @@ class InvokeMultiplePaymentsSuite extends BaseTransactionSuite with CancelAfterF
   private var asset2: IssuedAsset = _
 
   test("can transfer to alias") {
-    val dAppBalance   = sender.balance(dAppAddress).balance
-    val callerBalance = sender.balance(callerAddress).balance
-
+    val dAppBalance   = sender.wavesBalance(dAppAddress)
+    val callerBalance = sender.wavesBalance(callerAddress)
     sender
       .invokeScript(
         caller,
@@ -39,8 +38,8 @@ class InvokeMultiplePaymentsSuite extends BaseTransactionSuite with CancelAfterF
         waitForTx = true
       )
 
-    sender.balance(dAppAddress).balance shouldBe dAppBalance
-    sender.balance(callerAddress).balance shouldBe callerBalance - smartMinFee
+    sender.wavesBalance(dAppAddress)shouldBe dAppBalance
+    sender.wavesBalance(callerAddress)shouldBe callerBalance - smartMinFee
   }
 
   test("script should sheck if alias not exists") {
@@ -133,7 +132,7 @@ class InvokeMultiplePaymentsSuite extends BaseTransactionSuite with CancelAfterF
   }
 
   test("can't attach more than balance") {
-    val wavesBalance  = sender.balance(callerAddress).balance
+    val wavesBalance  = sender.wavesBalance(callerAddress)
     val asset1Balance = sender.assetBalance(callerAddress, asset1.id.toString).balance
 
     assertApiError(
@@ -162,7 +161,7 @@ class InvokeMultiplePaymentsSuite extends BaseTransactionSuite with CancelAfterF
   }
 
   test("can't attach leased Waves") {
-    val wavesBalance = sender.balance(callerAddress).balance
+    val wavesBalance = sender.wavesBalance(callerAddress)
     sender.lease(caller, dAppAddress, wavesBalance - 1.waves, waitForTx = true)
 
     assertApiError(

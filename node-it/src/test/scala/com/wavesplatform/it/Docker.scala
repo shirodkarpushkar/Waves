@@ -3,13 +3,12 @@ package com.wavesplatform.it
 import java.io.{FileOutputStream, IOException}
 import java.net.{InetAddress, InetSocketAddress, URL}
 import java.nio.file.{Files, Path, Paths}
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime}
 import java.time.format.DateTimeFormatter
 import java.util.Collections._
 import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.{Properties, List => JList, Map => JMap}
-
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.javaprop.JavaPropsMapper
 import com.google.common.primitives.Ints._
@@ -18,6 +17,7 @@ import com.spotify.docker.client.messages._
 import com.spotify.docker.client.{DefaultDockerClient, DockerClient}
 import com.typesafe.config.ConfigFactory._
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
+import com.typesafe.scalalogging.StrictLogging
 import com.wavesplatform.account.{AddressScheme, KeyPair}
 import com.wavesplatform.block.Block
 import com.wavesplatform.common.state.ByteStr
@@ -491,7 +491,7 @@ class Docker(
     node
   }
 
-  def connectToNetwork(nodes: Seq[DockerNode]): Unit = {
+  def connectToNetwork(nodes: DockerNode*): Unit = {
     nodes.foreach(connectToNetwork)
     Await.result(Future.traverse(nodes)(connectToAll), 1.minute)
   }
@@ -537,7 +537,7 @@ class Docker(
 
 }
 
-object Docker {
+object Docker extends StrictLogging {
   val NodeImageName: String = "com.wavesplatform/node-it:latest"
 
   private val ContainerRoot = Paths.get("/opt/waves")
@@ -559,7 +559,7 @@ object Docker {
     val baseTargetOverrides =
       if (minerConfigs.isEmpty) empty()
       else {
-        parseString(s"waves.blockchain.custom.genesis.initial-base-target = ${(for {
+        val maxBaseTarget = (for {
           minerConfig <- minerConfigs
           balance <- minerConfig
             .getConfigList("waves.blockchain.custom.genesis.transactions")
@@ -570,7 +570,9 @@ object Docker {
           balance.getLong("amount"),
           minerConfig.getAs[FunctionalitySettings]("waves.blockchain.custom.functionality").get,
           minerConfig.getDuration("waves.blockchain.custom.genesis.average-block-delay", TimeUnit.MILLISECONDS)
-        )).max}")
+        )).max
+        logger.debug(s"Initial base target $maxBaseTarget, genesis timestamp ${Instant.ofEpochMilli(genesisTs)}")
+        parseString(s"waves.blockchain.custom.genesis.initial-base-target = $maxBaseTarget")
       }
 
     val baseGenesisSettings = timestampOverrides.withFallback(baseTargetOverrides)

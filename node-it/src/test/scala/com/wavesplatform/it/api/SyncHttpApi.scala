@@ -207,8 +207,8 @@ object SyncHttpApi extends Assertions {
     def accountsBalances(height: Option[Int], accounts: Seq[String], asset: Option[String] = None): Seq[(String, Long)] =
       sync(async(n).accountsBalances(height, accounts, asset))
 
-    def balance(address: String, amountsAsStrings: Boolean = false): Balance =
-      sync(async(n).balance(address, amountsAsStrings))
+    def wavesBalance(address: String, amountsAsStrings: Boolean = false): Long =
+      sync(async(n).wavesBalance(address, amountsAsStrings))
 
     def effectiveBalance(address: String, confirmations: Option[Int] = None, amountsAsStrings: Boolean = false): Balance =
       sync(async(n).effectiveBalance(address, confirmations, amountsAsStrings))

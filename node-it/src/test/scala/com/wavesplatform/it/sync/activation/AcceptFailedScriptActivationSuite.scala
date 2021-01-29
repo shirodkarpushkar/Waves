@@ -203,8 +203,8 @@ class AcceptFailedScriptActivationSuite extends BaseTransactionSuite with NTPTim
   test("accept invalid by asset script in payment InvokeScriptTransaction to utx and save it as failed after activation height") {
     sender.setAssetScript(asset, dAppKP, priorityFee, assetScript(true), waitForTx = true)
 
-    val invokesCount = MaxTxsInMicroBlock * 2
-    val callerBalance = sender.balance(caller).balance
+    val invokesCount  = MaxTxsInMicroBlock * 2
+    val callerBalance = sender.wavesBalance(caller)
     val callerAssetBalance = {
       val balance = sender.assetBalance(caller, asset).balance
       if (balance < invokesCount) {
@@ -242,7 +242,7 @@ class AcceptFailedScriptActivationSuite extends BaseTransactionSuite with NTPTim
       all(failed.map(_.status)) shouldBe "confirmed"
       all(failed.map(_.applicationStatus)) shouldBe Some("script_execution_failed")
 
-      sender.balance(caller).balance shouldBe callerBalance - invokesCount * minInvokeFee
+      sender.wavesBalance(caller) shouldBe callerBalance - invokesCount * minInvokeFee
       sender.assetBalance(caller, asset).balance should be > 0L
       sender.assetBalance(dApp, asset).balance shouldBe dAppAssetBalance +- invokesCount
 
@@ -271,9 +271,9 @@ class AcceptFailedScriptActivationSuite extends BaseTransactionSuite with NTPTim
   test("reject withdrawal of InvokeScriptTransaction fee from the funds received as a result of the script call execution") {
     sender.setAssetScript(asset, dAppKP, setAssetScriptFee + smartFee, assetScript(true), waitForTx = true)
 
-    sender.transfer(otherCallerKP, caller, sender.balance(otherCaller).balance - minFee, fee = minFee, waitForTx = true)
+    sender.transfer(otherCallerKP, caller, sender.wavesBalance(otherCaller) - minFee, fee = minFee, waitForTx = true)
 
-    sender.balance(otherCaller).balance shouldBe 0L
+    sender.wavesBalance(otherCaller) shouldBe 0L
 
     assertApiError(sender.invokeScript(otherCallerKP, dApp, Some("transfer"), fee = minInvokeFee)) { e =>
       e.id shouldBe StateCheckFailed.Id
@@ -285,7 +285,7 @@ class AcceptFailedScriptActivationSuite extends BaseTransactionSuite with NTPTim
     sender.transfer(callerKP, otherCaller, issueFee, waitForTx = true)
     val tradeAsset = sender.issue(otherCallerKP, "Trade", decimals = 8: Byte, waitForTx = true).id
 
-    sender.balance(otherCaller).balance shouldBe 0L
+    sender.wavesBalance(otherCaller) shouldBe 0L
 
     val assetPair = AssetPair.createAssetPair("WAVES", tradeAsset)
 

@@ -255,6 +255,10 @@ object AsyncHttpApi extends Assertions {
       get(s"/addresses/balance/$address", amountsAsStrings).as[Balance](amountsAsStrings)
     }
 
+    def wavesBalance(address: String, amountsAsStrings: Boolean = false): Future[Long] = {
+      get(s"/addresses/balance/$address", amountsAsStrings).as[Balance](amountsAsStrings).map(_.balance)
+    }
+
     def balances(height: Option[Int], addresses: Seq[String], asset: Option[String]): Future[Seq[Balance]] = {
       for {
         json <- postJson(
@@ -946,27 +950,23 @@ object AsyncHttpApi extends Assertions {
 
     def accountEffectiveBalance(acc: String): Future[Long] = n.effectiveBalance(acc).map(_.balance)
 
-    def accountBalance(acc: String): Future[Long] = n.balance(acc).map(_.balance)
-
     def balanceAtHeight(address: String, height: Int): Future[Long] =
       accountsBalances(Some(height), Seq(address), None).map(_.collectFirst { case (`address`, balance) => balance }.getOrElse(0L))
 
     def accountsBalances(height: Option[Int], accounts: Seq[String], asset: Option[String]): Future[Seq[(String, Long)]] =
       n.balances(height, accounts, asset).map(_.map(b => (b.address, b.balance)))
 
-    def assertBalances(acc: String, balance: Long, effectiveBalance: Long)(implicit pos: Position): Future[Unit] = {
+    def assertBalances(acc: String, balance: Long, effectiveBalance: Long)(implicit pos: Position): Future[Unit] =
       for {
-        newBalance          <- accountBalance(acc)
-        newEffectiveBalance <- accountEffectiveBalance(acc)
+        bd <- balanceDetails(acc)
       } yield {
         withClue(s"effective balance of $acc") {
-          newEffectiveBalance shouldBe effectiveBalance
+          bd.effective shouldBe effectiveBalance
         }
         withClue(s"balance of $acc") {
-          newBalance shouldBe balance
+          bd.regular shouldBe balance
         }
       }
-    }
 
     def assertAssetBalance(acc: String, assetIdString: String, balance: Long)(implicit pos: Position): Future[Unit] = {
       for {

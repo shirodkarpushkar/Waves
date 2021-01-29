@@ -10,25 +10,10 @@ import org.scalatest._
 import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 
-class BaseSuite
-    extends FreeSpec
-    with ReportingTestName
-    with NodesFromDocker
-    with Matchers
-    with CancelAfterFailure
-    with BeforeAndAfterAll
-    with BeforeAndAfterEach {
+trait BaseSuiteLike extends ReportingTestName with NodesFromDocker with Matchers with CancelAfterFailure { this: TestSuite =>
   protected implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
-  protected def nodeConfigs: Seq[Config] =
-    NodeConfigs.newBuilder
-      .overrideBase(_.quorum(0))
-      .withDefault(1)
-      .withSpecial(_.nonMiner)
-      .buildNonConflicting()
-
-  def miner: Node            = nodes.head
-  def notMiner: Node         = nodes.last
+  protected def miner: Node            = nodes.head
   protected def sender: Node = miner
 
   // protected because https://github.com/sbt/zinc/issues/292
@@ -48,8 +33,20 @@ class BaseSuite
 
   override protected def nodes: Seq[Node] = theNodes()
 
-  protected override def beforeAll(): Unit = {
+  override protected def beforeAll(): Unit = {
     theNodes.run()
     super.beforeAll()
   }
+}
+
+class BaseSuite extends FreeSpec with BaseSuiteLike with BeforeAndAfterAll with BeforeAndAfterEach {
+
+  protected def nodeConfigs: Seq[Config] =
+    NodeConfigs.newBuilder
+      .overrideBase(_.quorum(0))
+      .withDefault(1)
+      .withSpecial(_.nonMiner)
+      .buildNonConflicting()
+
+  def notMiner: Node = nodes.last
 }

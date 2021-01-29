@@ -354,8 +354,7 @@ class PoSSuite extends FunSuite with Matchers with NodesFromDocker with WaitForH
         .calculateDelay(
           hit(hitSource.arr),
           lastBlockCData.baseTarget,
-          nodes.head.balance(signerPK.toAddress.toString).balance
-        )
+          nodes.head.wavesBalance(signerPK.toAddress.toString)        )
     )
 
     val baseTarget: Long = updateBaseTarget(

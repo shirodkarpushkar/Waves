@@ -1,15 +1,15 @@
 package com.wavesplatform.it.sync.smartcontract
+
 import com.typesafe.config.Config
 import com.wavesplatform.common.utils.EitherExt2
 import com.wavesplatform.features.BlockchainFeatures
-import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.transactions.BaseTransactionSuite
+import com.wavesplatform.it.{BaseSuiteLike, NodeConfigs}
 import com.wavesplatform.lang.v1.estimator.ScriptEstimatorV1
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
+import org.scalatest.FunSuite
 
-class UtilsEstimatorToggleSuite extends BaseTransactionSuite with CancelAfterFailure {
+class UtilsEstimatorToggleSuite extends FunSuite with BaseSuiteLike {
   val estimatorV2ActivationHeight = 5
   val estimatorV3ActivationHeight = 8
 
@@ -42,8 +42,10 @@ class UtilsEstimatorToggleSuite extends BaseTransactionSuite with CancelAfterFai
 
   test("check estimations") {
     val compiledScript =
-      ScriptCompiler.compile(differentlyEstimatedScript, ScriptEstimatorV1)
-        .explicitGet()._1
+      ScriptCompiler
+        .compile(differentlyEstimatedScript, ScriptEstimatorV1)
+        .explicitGet()
+        ._1
         .bytes()
         .base64
 

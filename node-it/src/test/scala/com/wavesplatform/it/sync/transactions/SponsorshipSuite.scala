@@ -5,27 +5,21 @@ import com.wavesplatform.account.AddressScheme
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
 import com.wavesplatform.features.BlockchainFeatures
+import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.api.TransactionInfo
 import com.wavesplatform.it.sync._
-import com.wavesplatform.it.transactions.NodesFromDocker
+import com.wavesplatform.it.transactions.BaseTransactionSuiteLike
 import com.wavesplatform.it.util._
-import com.wavesplatform.it.{IntegrationSuiteWithThreeAddresses, NodeConfigs, ReportingTestName}
 import com.wavesplatform.state.diffs.FeeValidation
 import com.wavesplatform.transaction.Asset.IssuedAsset
 import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.assets.SponsorFeeTransaction
-import org.scalatest.{Assertion, FreeSpec, Matchers}
+import org.scalatest.{Assertion, FreeSpec}
 
 import scala.concurrent.duration._
 
-class SponsorshipSuite
-    extends FreeSpec
-    with IntegrationSuiteWithThreeAddresses
-    with NodesFromDocker
-    with Matchers
-    with ReportingTestName
-    /*with CancelAfterFailure*/ {
+class SponsorshipSuite extends FreeSpec with BaseTransactionSuiteLike {
 
   override def nodeConfigs: Seq[Config] =
     NodeConfigs.newBuilder

@@ -1,17 +1,16 @@
 package com.wavesplatform.it
 
+import java.io.File
+
 import com.typesafe.config.{Config, ConfigFactory}
-import com.wavesplatform.account.KeyPair
 import com.wavesplatform.it.transactions.NodesFromDocker
 import monix.eval.Coeval
 import org.scalatest._
 
-import java.io.File
 import scala.jdk.CollectionConverters._
 
 trait BaseSuiteLike extends ReportingTestName with NodesFromDocker with Matchers with CancelAfterFailure { this: TestSuite =>
-  protected def miner: Node  = nodes.head
-  protected def sender: Node = miner
+  protected lazy val miner: Node  = nodes.find(_.settings.minerSettings.enable).get
 
   // protected because https://github.com/sbt/zinc/issues/292
   protected val theNodes: Coeval[Seq[Node]] = Coeval.evalOnce {
@@ -28,6 +27,13 @@ trait BaseSuiteLike extends ReportingTestName with NodesFromDocker with Matchers
     }
   }
 
+  protected def nodeConfigs: Seq[Config] =
+    NodeConfigs.newBuilder
+      .overrideBase(_.quorum(0))
+      .withDefault(1)
+      .withSpecial(_.nonMiner)
+      .buildNonConflicting()
+
   override protected def nodes: Seq[Node] = theNodes()
 
   override protected def beforeAll(): Unit = {
@@ -36,25 +42,6 @@ trait BaseSuiteLike extends ReportingTestName with NodesFromDocker with Matchers
   }
 }
 
-abstract class BaseFunSuite extends FunSuite with BaseSuiteLike {
-  protected def firstAddress: String = sender.address
-  protected def firstKeyPair: KeyPair = sender.keyPair
+abstract class BaseFunSuite extends FunSuite with BaseSuiteLike
 
-  protected def nodeConfigs: Seq[Config] =
-    NodeConfigs.newBuilder
-      .overrideBase(_.quorum(0))
-      .withDefault(1)
-      .withSpecial(_.nonMiner)
-      .buildNonConflicting()
-}
-
-class BaseSuite extends FreeSpec with BaseSuiteLike with BeforeAndAfterAll with BeforeAndAfterEach {
-  protected def nodeConfigs: Seq[Config] =
-    NodeConfigs.newBuilder
-      .overrideBase(_.quorum(0))
-      .withDefault(1)
-      .withSpecial(_.nonMiner)
-      .buildNonConflicting()
-
-  def notMiner: Node = nodes.last
-}
+abstract class BaseSuite extends FreeSpec with BaseSuiteLike

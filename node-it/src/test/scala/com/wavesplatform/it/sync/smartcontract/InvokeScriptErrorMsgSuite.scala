@@ -10,11 +10,11 @@ import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Asset
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class InvokeScriptErrorMsgSuite extends BaseTransactionSuite with CancelAfterFailure {
+class InvokeScriptErrorMsgSuite extends BaseTransactionSuite {
   private def contract = firstKeyPair
-  private def caller   = secondKeyPair
+
+  private def caller = secondKeyPair
 
   private lazy val contractAddress: String = contract.toAddress.toString
 

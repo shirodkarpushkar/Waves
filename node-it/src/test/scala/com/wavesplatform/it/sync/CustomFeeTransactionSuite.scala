@@ -11,9 +11,8 @@ import com.wavesplatform.state.Sponsorship
 import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.assets.IssueTransaction
 import com.wavesplatform.utils._
-import org.scalatest.CancelAfterFailure
 
-class CustomFeeTransactionSuite extends BaseTransactionSuite with CancelAfterFailure {
+class CustomFeeTransactionSuite extends BaseTransactionSuite {
 
   import CustomFeeTransactionSuite._
 
@@ -22,8 +21,8 @@ class CustomFeeTransactionSuite extends BaseTransactionSuite with CancelAfterFai
   override protected def nodeConfigs: Seq[Config] = Configs
 
   private val transferFee = 100000
-  private val assetFee    = 1.waves
-  private val assetToken  = 100
+  private val assetFee = 1.waves
+  private val assetToken = 100
 
   test("make transfer with sponsored asset") {
     val bd1 = notMiner.balanceDetails(senderAddress)

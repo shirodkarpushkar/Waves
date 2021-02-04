@@ -11,18 +11,18 @@ import com.wavesplatform.it.util._
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Asset
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
 import scala.concurrent.duration._
 
-class Ride4DAppsActivationTestSuite extends BaseTransactionSuite with CancelAfterFailure {
+class Ride4DAppsActivationTestSuite extends BaseTransactionSuite {
   private val estimator = ScriptEstimatorV2
 
   import Ride4DAppsActivationTestSuite._
 
   override protected def nodeConfigs: Seq[Config] = configWithRide4DAppsFeature
 
-  private def smartAcc  = firstKeyPair
+  private def smartAcc = firstKeyPair
+
   private def callerAcc = secondKeyPair
 
   private val scriptV3 = ScriptCompiler

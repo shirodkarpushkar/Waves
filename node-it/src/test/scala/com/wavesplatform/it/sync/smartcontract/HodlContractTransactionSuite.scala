@@ -12,15 +12,15 @@ import com.wavesplatform.state._
 import com.wavesplatform.transaction.Asset.Waves
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class HodlContractTransactionSuite extends BaseTransactionSuite with CancelAfterFailure {
+class HodlContractTransactionSuite extends BaseTransactionSuite {
 
   private def contract = firstKeyPair
-  private def caller   = secondKeyPair
+
+  private def caller = secondKeyPair
 
   private lazy val contractAddress: String = contract.toAddress.toString
-  private lazy val callerAddress: String   = caller.toAddress.toString
+  private lazy val callerAddress: String = caller.toAddress.toString
 
   test("setup contract account with waves") {
     miner

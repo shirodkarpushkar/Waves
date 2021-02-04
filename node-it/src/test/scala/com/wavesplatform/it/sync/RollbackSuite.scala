@@ -13,7 +13,7 @@ import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.smart.SetScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 import org.scalatest.prop.TableDrivenPropertyChecks
-import org.scalatest.{CancelAfterFailure, FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -22,7 +22,6 @@ import scala.util.Random
 @LoadTest
 class RollbackSuite
     extends FunSuite
-    with CancelAfterFailure
     with TransferSending
     with NodesFromDocker
     with ReportingTestName

@@ -11,19 +11,20 @@ import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 import com.wavesplatform.transaction.transfer.MassTransferTransaction.Transfer
 import org.scalactic.source.Position
-import org.scalatest.CancelAfterFailure
 
-class InvokeScriptTransactionStateChangesSuite extends BaseTransactionSuite with CancelAfterFailure {
+class InvokeScriptTransactionStateChangesSuite extends BaseTransactionSuite {
 
-  private def contract  = firstKeyPair
-  private def caller    = secondKeyPair
+  private def contract = firstKeyPair
+
+  private def caller = secondKeyPair
+
   private def recipient = thirdKeyPair
 
-  var simpleAsset: String               = ""
-  var assetSponsoredByDApp: String      = ""
+  var simpleAsset: String = ""
+  var assetSponsoredByDApp: String = ""
   var assetSponsoredByRecipient: String = ""
-  var initCallerTxs: Long               = 0
-  var initDAppTxs: Long                 = 0
+  var initCallerTxs: Long = 0
+  var initDAppTxs: Long = 0
   var initRecipientTxs: Long            = 0
   var initCallerStateChanges: Long      = 0
   var initDAppStateChanges: Long        = 0

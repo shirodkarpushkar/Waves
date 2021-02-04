@@ -432,7 +432,7 @@ class SetAssetScriptTransactionSuite extends BaseTransactionSuite {
       .id
     nodes.waitForHeightAriseAndTxPresent(assetV1)
 
-    val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
+    val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(thirdAddress)
     val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(secondAddress)
     for (v <- setAssetScrTxSupportedVersions) {
       assertApiError(miner.setAssetScript(assetV1, thirdKeyPair, setAssetScriptFee, Some(scriptBase64), version = v)) { error =>

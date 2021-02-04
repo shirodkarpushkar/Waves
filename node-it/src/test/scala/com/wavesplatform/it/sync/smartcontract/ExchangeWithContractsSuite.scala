@@ -9,28 +9,31 @@ import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.state._
 import com.wavesplatform.transaction.assets.exchange._
 import com.wavesplatform.transaction.{DataTransaction, TxVersion}
-import org.scalatest.CancelAfterFailure
 
-class ExchangeWithContractsSuite extends BaseTransactionSuite with CancelAfterFailure with NTPTime {
+class ExchangeWithContractsSuite extends BaseTransactionSuite with NTPTime {
   private def acc0 = firstKeyPair
+
   private def acc1 = secondKeyPair
+
   private def acc2 = thirdKeyPair
 
-  var exchAsset: String    = ""
+  var exchAsset: String = ""
   var dtx: DataTransaction = _
-  var pair: AssetPair      = _
+  var pair: AssetPair = _
 
   val sc1: Option[String] = Some(s"true")
-  val sc2: Option[String] = Some(s"""
-               |match tx {
-               |  case _: SetScriptTransaction => true
-               |  case _ => false
-               |}""".stripMargin)
-  val sc3: Option[String] = Some(s"""
-               |match tx {
-               |  case _: SetScriptTransaction => true
-               |  case _ => throw("Some generic error")
-               |}""".stripMargin)
+  val sc2: Option[String] = Some(
+    s"""
+       |match tx {
+       |  case _: SetScriptTransaction => true
+       |  case _ => false
+       |}""".stripMargin)
+  val sc3: Option[String] = Some(
+    s"""
+       |match tx {
+       |  case _: SetScriptTransaction => true
+       |  case _ => throw("Some generic error")
+       |}""".stripMargin)
 
   protected override def beforeAll(): Unit = {
     super.beforeAll()

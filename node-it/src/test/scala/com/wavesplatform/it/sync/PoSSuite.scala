@@ -14,12 +14,12 @@ import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.transactions.NodesFromDocker
 import com.wavesplatform.it.{NodeConfigs, WaitForHeight2}
 import com.wavesplatform.network.RawBytes
-import org.scalatest.{CancelAfterFailure, FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers}
 import play.api.libs.json.{JsSuccess, Json, Reads}
 
 import scala.util.Random
 
-class PoSSuite extends FunSuite with Matchers with NodesFromDocker with WaitForHeight2 with CancelAfterFailure {
+class PoSSuite extends FunSuite with Matchers with NodesFromDocker with WaitForHeight2 {
 
   private val signerPK = KeyPair.fromSeed(nodeConfigs.last.getString("account-seed")).explicitGet()
 

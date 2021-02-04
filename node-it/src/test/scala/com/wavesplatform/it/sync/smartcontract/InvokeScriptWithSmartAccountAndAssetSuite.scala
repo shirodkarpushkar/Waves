@@ -11,13 +11,14 @@ import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Asset.IssuedAsset
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction.Payment
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class InvokeScriptWithSmartAccountAndAssetSuite extends BaseTransactionSuite with CancelAfterFailure {
+class InvokeScriptWithSmartAccountAndAssetSuite extends BaseTransactionSuite {
   private val estimator = ScriptEstimatorV2
 
-  private def dApp        = firstKeyPair
-  private def caller      = secondKeyPair
+  private def dApp = firstKeyPair
+
+  private def caller = secondKeyPair
+
   private def smartCaller = thirdKeyPair
 
   var asset1: String = ""

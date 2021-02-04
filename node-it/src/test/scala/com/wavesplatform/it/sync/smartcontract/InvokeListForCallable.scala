@@ -9,12 +9,12 @@ import com.wavesplatform.lang.v1.compiler.Terms._
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.state._
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
 import scala.util.Random
 
-class InvokeListForCallable extends BaseTransactionSuite with CancelAfterFailure {
-  private def dApp   = firstKeyPair
+class InvokeListForCallable extends BaseTransactionSuite {
+  private def dApp = firstKeyPair
+
   private def caller = secondKeyPair
 
   private lazy val dAppAddress: String = dApp.toAddress.toString
@@ -22,8 +22,8 @@ class InvokeListForCallable extends BaseTransactionSuite with CancelAfterFailure
   test("prerequisite: set contract and issue asset") {
     val source =
       """
-      |{-# STDLIB_VERSION 4 #-}
-      |{-# CONTENT_TYPE DAPP #-}
+        |{-# STDLIB_VERSION 4 #-}
+        |{-# CONTENT_TYPE DAPP #-}
       |{-# SCRIPT_TYPE ACCOUNT #-}
       |
       |

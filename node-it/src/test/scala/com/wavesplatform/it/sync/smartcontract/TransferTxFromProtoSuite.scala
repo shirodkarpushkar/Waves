@@ -35,7 +35,7 @@ class TransferTxFromProtoSuite extends BaseTransactionSuite {
       |[
       |IntegerEntry("amount", transferTx.amount),
       |StringEntry("senderPublicKey", transferTx.senderPublicKey.toBase58String()),
-      |StringEntry("sender", transferTx.miner.bytes.toBase58String()),
+      |StringEntry("sender", transferTx.sender.bytes.toBase58String()),
       |StringEntry("recipient", addressFromRecipient(transferTx.recipient).bytes.toBase58String()),
       |StringEntry("assetId", assetId),
       |StringEntry("attachment", transferTxAttachment),

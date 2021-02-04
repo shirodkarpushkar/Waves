@@ -6,9 +6,10 @@ import com.wavesplatform.it.api._
 import com.wavesplatform.it.transactions.NodesFromDocker
 import com.wavesplatform.it.{NodeConfigs, ReportingTestName}
 import org.scalatest._
+
 import scala.concurrent.duration._
 
-class BlacklistTestSuite extends FreeSpec with Matchers with CancelAfterFailure with ReportingTestName with NodesFromDocker {
+class BlacklistTestSuite extends FreeSpec with Matchers with ReportingTestName with NodesFromDocker {
 
   override protected def nodeConfigs: Seq[Config] =
     NodeConfigs.newBuilder

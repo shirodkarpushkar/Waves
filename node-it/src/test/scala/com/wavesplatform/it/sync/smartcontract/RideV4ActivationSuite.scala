@@ -15,11 +15,12 @@ import com.wavesplatform.transaction.Asset
 import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction.Payment
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.{Assertion, CancelAfterFailure}
+import org.scalatest.Assertion
 
 import scala.concurrent.duration._
 
-class RideV4ActivationSuite extends BaseTransactionSuite with CancelAfterFailure {
+class RideV4ActivationSuite extends BaseTransactionSuite {
+
   import RideV4ActivationSuite._
 
   override protected def nodeConfigs: Seq[Config] =

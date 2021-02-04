@@ -12,9 +12,10 @@ import com.wavesplatform.it.util._
 import com.wavesplatform.lang.v1.estimator.v3.ScriptEstimatorV3
 import com.wavesplatform.state.BinaryDataEntry
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.{CancelAfterFailure, Matchers, OptionValues}
+import org.scalatest.{Matchers, OptionValues}
 
-class InvokeCalcIssueSuite extends BaseTransactionSuite with Matchers with CancelAfterFailure with OptionValues {
+class InvokeCalcIssueSuite extends BaseTransactionSuite with Matchers with OptionValues {
+
   import InvokeCalcIssueSuite._
 
   override protected def nodeConfigs: Seq[Config] =
@@ -24,7 +25,7 @@ class InvokeCalcIssueSuite extends BaseTransactionSuite with Matchers with Cance
       .overrideBase(_.preactivatedFeatures((BlockchainFeatures.BlockV5, 0)))
       .buildNonConflicting()
 
-  private def smartAcc  = firstKeyPair
+  private def smartAcc = firstKeyPair
   private def callerAcc = secondKeyPair
 
   test("calculateAssetId should return right unique id for each invoke") {

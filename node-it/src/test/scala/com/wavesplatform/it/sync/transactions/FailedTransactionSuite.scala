@@ -18,20 +18,21 @@ import com.wavesplatform.transaction.Asset.IssuedAsset
 import com.wavesplatform.transaction.assets.exchange.AssetPair
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
 import scala.concurrent.duration._
 
-class FailedTransactionSuite extends BaseTransactionSuite with CancelAfterFailure with FailedTransactionSuiteLike[String] with OverflowBlock {
+class FailedTransactionSuite extends BaseTransactionSuite with FailedTransactionSuiteLike[String] with OverflowBlock {
+
   import FailedTransactionSuite._
   import FailedTransactionSuiteLike._
   import restApi._
 
   private lazy val contract = miner.createKeyPair()
-  private def caller        = thirdKeyPair
 
-  private val assetAmount    = 1000000000L
-  private var smartAsset     = ""
+  private def caller = thirdKeyPair
+
+  private val assetAmount = 1000000000L
+  private var smartAsset = ""
   private var sponsoredAsset = ""
 
   private def seller  = firstKeyPair

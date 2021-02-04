@@ -14,13 +14,14 @@ import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
 import com.wavesplatform.transaction.DataTransaction
 import com.wavesplatform.transaction.assets.exchange._
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class ExchangeSmartAssetsSuite extends BaseTransactionSuite with CancelAfterFailure with NTPTime {
+class ExchangeSmartAssetsSuite extends BaseTransactionSuite with NTPTime {
   private val estimator = ScriptEstimatorV2
 
   private def acc0 = firstKeyPair
+
   private def acc1 = secondKeyPair
+
   private def acc2 = thirdKeyPair
 
   private var dtx: DataTransaction = _

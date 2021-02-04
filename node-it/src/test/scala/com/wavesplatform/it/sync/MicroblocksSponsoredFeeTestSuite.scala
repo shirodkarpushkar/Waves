@@ -8,17 +8,17 @@ import com.wavesplatform.it.transactions.NodesFromDocker
 import com.wavesplatform.state.Sponsorship
 import com.wavesplatform.state.diffs.FeeValidation
 import com.wavesplatform.utils.ScorexLogging
-import org.scalatest.{CancelAfterFailure, FreeSpec, Matchers}
+import org.scalatest.{FreeSpec, Matchers}
 
-class MicroblocksSponsoredFeeTestSuite extends FreeSpec with Matchers with CancelAfterFailure with NodesFromDocker with ScorexLogging {
+class MicroblocksSponsoredFeeTestSuite extends FreeSpec with Matchers with NodesFromDocker with ScorexLogging {
 
   private def notMiner = nodes.head
 
-  private lazy val sponsor      = nodes(1)
-  private val Token             = 100L
+  private lazy val sponsor = nodes(1)
+  private val Token = 100L
   private val sponsorAssetTotal = 100000 * Token
-  private val minSponsorFee     = Token
-  private val SmallFee          = Token + Token / 2
+  private val minSponsorFee = Token
+  private val SmallFee = Token + Token / 2
 
   private def secondAddress = nodes(2).address
 

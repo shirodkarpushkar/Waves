@@ -5,10 +5,12 @@ import com.wavesplatform.it.api.State
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.transactions.NodesFromDocker
 import com.wavesplatform.it.util._
-import org.scalatest.{CancelAfterFailure, FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers}
+
 import scala.concurrent.duration._
 
-class MinerStateTestSuite extends FunSuite with CancelAfterFailure with NodesFromDocker with Matchers {
+class MinerStateTestSuite extends FunSuite with NodesFromDocker with Matchers {
+
   import MinerStateTestSuite._
 
   override protected def nodeConfigs: Seq[Config] = Configs
@@ -16,7 +18,8 @@ class MinerStateTestSuite extends FunSuite with CancelAfterFailure with NodesFro
   private val transferAmount = 1000.waves
 
   private def miner = nodes.head
-  private def last  = nodes.last
+
+  private def last = nodes.last
 
   test("node w/o balance can forge blocks after effective balance increase") {
     val newKeyPair = last.createKeyPair()

@@ -12,16 +12,18 @@ import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 import com.wavesplatform.transaction.transfer.MassTransferTransaction.Transfer
-import org.scalatest.CancelAfterFailure
 
-class InvokeSelfPaymentSuite extends BaseTransactionSuite with CancelAfterFailure {
+class InvokeSelfPaymentSuite extends BaseTransactionSuite {
 
   private def caller = firstKeyPair
+
   private def dAppV4 = secondKeyPair
+
   private def dAppV3 = thirdKeyPair
 
   private var asset1: IssuedAsset = _
-  private def asset1Id            = asset1.id.toString
+
+  private def asset1Id = asset1.id.toString
 
   private lazy val dAppV3Address: String = dAppV3.toAddress.toString
   private lazy val dAppV4Address: String = dAppV4.toAddress.toString

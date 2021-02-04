@@ -19,7 +19,6 @@ class BigStringSuite extends BaseTransactionSuite {
   private def acc2 = thirdKeyPair
 
   test("set contract, make leasing and cancel leasing") {
-    val bd1 = miner.balanceDetails(acc0.toAddress.toString)
     val bd2 = miner.balanceDetails(acc2.toAddress.toString)
 
     val scriptText = s"""

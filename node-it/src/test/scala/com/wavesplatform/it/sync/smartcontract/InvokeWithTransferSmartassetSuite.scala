@@ -9,13 +9,14 @@ import com.wavesplatform.lang.v1.compiler.Terms.CONST_STRING
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.state.IntegerDataEntry
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class InvokeWithTransferSmartassetSuite extends BaseTransactionSuite with CancelAfterFailure {
+class InvokeWithTransferSmartassetSuite extends BaseTransactionSuite {
   private val estimator = ScriptEstimatorV2
 
-  private def dApp      = firstKeyPair
+  private def dApp = firstKeyPair
+
   private def callerAcc = secondKeyPair
+
   private def issuerAcc = thirdKeyPair
 
   private val accScript = ScriptCompiler

@@ -12,11 +12,12 @@ import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Proofs
 import com.wavesplatform.transaction.lease.{LeaseCancelTransaction, LeaseTransaction}
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class LeaseSmartContractsTestSuite extends BaseTransactionSuite with CancelAfterFailure {
+class LeaseSmartContractsTestSuite extends BaseTransactionSuite {
   private def acc0 = firstKeyPair
+
   private def acc1 = secondKeyPair
+
   private def acc2 = thirdKeyPair
 
   test("set contract, make leasing and cancel leasing") {

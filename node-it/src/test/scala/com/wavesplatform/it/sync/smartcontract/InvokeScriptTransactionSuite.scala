@@ -19,13 +19,13 @@ import com.wavesplatform.transaction.Asset.Waves
 import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction.Payment
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
 import scala.concurrent.duration._
 
-class InvokeScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFailure {
+class InvokeScriptTransactionSuite extends BaseTransactionSuite {
 
   val activationHeight = 8
+
   override protected def nodeConfigs: Seq[Config] =
     NodeConfigs
       .Builder(NodeConfigs.Default, 1, Seq.empty)

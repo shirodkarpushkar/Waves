@@ -6,12 +6,11 @@ import com.wavesplatform.features.{BlockchainFeatureStatus, BlockchainFeatures}
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.transactions.NodesFromDocker
 import com.wavesplatform.it.{Docker, ReportingTestName}
-import org.scalatest.{CancelAfterFailure, FreeSpec, Matchers}
+import org.scalatest.{FreeSpec, Matchers}
 
 class PreActivatedFeaturesTestSuite
     extends FreeSpec
     with Matchers
-    with CancelAfterFailure
     with NodesFromDocker
     with ActivationStatusRequest
     with ReportingTestName {

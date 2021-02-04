@@ -14,19 +14,19 @@ import com.wavesplatform.state._
 import com.wavesplatform.transaction.Asset._
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 import com.wavesplatform.transaction.transfer.TransferTransaction
-import org.scalatest.{CancelAfterFailure, FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers}
 
-class RideCreateMerkleRootTestSuite extends FunSuite with CancelAfterFailure with NodesFromDocker with ReportingTestName with Matchers with NTPTime {
+class RideCreateMerkleRootTestSuite extends FunSuite with NodesFromDocker with ReportingTestName with Matchers with NTPTime {
   override def nodeConfigs: Seq[Config] =
     NodeConfigs.newBuilder
       .overrideBase(_.quorum(0))
       .overrideBase(
         _.preactivatedFeatures(
           BlockchainFeatures.BlockReward -> 0,
-          BlockchainFeatures.NG          -> 0,
-          BlockchainFeatures.FairPoS     -> 0,
-          BlockchainFeatures.Ride4DApps  -> 0,
-          BlockchainFeatures.BlockV5     -> 0
+          BlockchainFeatures.NG -> 0,
+          BlockchainFeatures.FairPoS -> 0,
+          BlockchainFeatures.Ride4DApps -> 0,
+          BlockchainFeatures.BlockV5 -> 0
         )
       )
       .withDefault(1)

@@ -8,14 +8,13 @@ import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.activation.ActivationStatusRequest
 import com.wavesplatform.it.transactions.NodesFromDocker
 import com.wavesplatform.it.{Node, ReportingTestName}
-import org.scalatest.{CancelAfterFailure, FreeSpec, Matchers, OptionValues}
+import org.scalatest.{FreeSpec, Matchers, OptionValues}
 
 import scala.concurrent.duration._
 
 class RewardsTestSuite
     extends FreeSpec
     with Matchers
-    with CancelAfterFailure
     with NodesFromDocker
     with ActivationStatusRequest
     with ReportingTestName

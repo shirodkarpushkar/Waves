@@ -15,15 +15,14 @@ import com.wavesplatform.transaction.Proofs
 import com.wavesplatform.transaction.smart.SetScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 import com.wavesplatform.transaction.transfer.TransferTransaction
-import org.scalatest.CancelAfterFailure
 
-class SetScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFailure {
+class SetScriptTransactionSuite extends BaseTransactionSuite {
   private lazy val fourthAddress: KeyPair = miner.createKeyPair()
-  private lazy val fifthAddress: KeyPair  = miner.createKeyPair()
+  private lazy val fifthAddress: KeyPair = miner.createKeyPair()
 
-  private def acc0      = firstKeyPair
-  private def acc1      = secondKeyPair
-  private def acc2      = thirdKeyPair
+  private lazy val acc0 = firstKeyPair
+  private lazy val acc1 = secondKeyPair
+  private lazy val acc2 = thirdKeyPair
   private lazy val acc3 = fourthAddress
   private lazy val acc4 = fifthAddress
 

@@ -17,23 +17,26 @@ import com.wavesplatform.lang.v1.estimator.v3.ScriptEstimatorV3
 import com.wavesplatform.transaction.TxVersion
 import com.wavesplatform.transaction.assets.UpdateAssetInfoTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 import org.scalatest.prop.TableDrivenPropertyChecks
 import play.api.libs.json.{JsObject, Json}
 
 import scala.concurrent.duration._
 import scala.util.Random
 
-class UpdateAssetInfoTransactionSuite extends BaseTransactionSuite with CancelAfterFailure with TableDrivenPropertyChecks {
+class UpdateAssetInfoTransactionSuite extends BaseTransactionSuite with TableDrivenPropertyChecks {
+
   import UpdateAssetInfoTransactionSuite._
+
   val updateInterval = 5
+
   override protected def nodeConfigs: Seq[Config] =
     Seq(
       configWithUpdateIntervalSetting(updateInterval).withFallback(Miners.head),
       configWithUpdateIntervalSetting(updateInterval).withFallback(NotMiner)
     )
 
-  private def issuer    = firstKeyPair
+  private def issuer = firstKeyPair
+
   private def nonIssuer = secondKeyPair
   private def dApp      = thirdKeyPair
   var assetId           = ""

@@ -11,19 +11,19 @@ import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Asset.IssuedAsset
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction.Payment
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelAfterFailure {
+class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite {
   private val estimator = ScriptEstimatorV2
 
-  private def dApp   = firstKeyPair
+  private def dApp = firstKeyPair
+
   private def caller = secondKeyPair
 
-  val quantity: Long          = 10000
-  val halfQuantity: Long      = quantity / 2
-  var dAppAsset: String       = ""
-  var callerAsset: String     = ""
-  var smartAsset: String      = ""
+  val quantity: Long = 10000
+  val halfQuantity: Long = quantity / 2
+  var dAppAsset: String = ""
+  var callerAsset: String = ""
+  var smartAsset: String = ""
   var dAppInitBalance: Long   = 0
   var callerInitBalance: Long = 0
 

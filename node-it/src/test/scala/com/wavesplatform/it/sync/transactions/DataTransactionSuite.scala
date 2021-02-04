@@ -255,7 +255,7 @@ class DataTransactionSuite extends BaseTransactionSuite with EitherValues {
       miner.getData(txSenderAddress) shouldBe boolList ++ reIntList ++ stringList
 
       // define tx with all types
-      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(firstAddress)
+      val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(txSenderAddress)
       val intEntry2          = IntegerDataEntry("int", -127)
       val boolEntry2         = BooleanDataEntry("bool", false)
       val blobEntry2         = BinaryDataEntry("blob", ByteStr(Array[Byte](127.toByte, 0, 1, 1)))

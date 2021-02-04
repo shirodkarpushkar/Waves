@@ -11,17 +11,18 @@ import com.wavesplatform.transaction.Asset
 import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction.Payment
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class InvokeScriptPayAndTransferSameAssetSuite extends BaseTransactionSuite with CancelAfterFailure {
+class InvokeScriptPayAndTransferSameAssetSuite extends BaseTransactionSuite {
   private val estimator = ScriptEstimatorV2
 
-  private def dApp     = firstKeyPair
-  private def caller   = secondKeyPair
+  private def dApp = firstKeyPair
+
+  private def caller = secondKeyPair
+
   private def receiver = thirdKeyPair
 
-  private lazy val dAppAddress: String     = dApp.toAddress.toString
-  private lazy val callerAddress: String   = caller.toAddress.toString
+  private lazy val dAppAddress: String = dApp.toAddress.toString
+  private lazy val callerAddress: String = caller.toAddress.toString
   private lazy val receiverAddress: String = receiver.toAddress.toString
 
   var dAppInitBalance: Long     = 0

@@ -13,9 +13,8 @@ import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Asset.IssuedAsset
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class RideUpdateAssetInfoTxSuite extends BaseTransactionSuite with CancelAfterFailure {
+class RideUpdateAssetInfoTxSuite extends BaseTransactionSuite {
 
   override protected def nodeConfigs: Seq[Config] =
     NodeConfigs.Builder(Default, 1, Seq.empty)
@@ -24,6 +23,7 @@ class RideUpdateAssetInfoTxSuite extends BaseTransactionSuite with CancelAfterFa
       .buildNonConflicting()
 
   private def dApp = firstKeyPair
+
   private def smartAcc = secondKeyPair
 
   private var asset1: IssuedAsset = _

@@ -5,7 +5,7 @@ import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{issueAmount, issueFee, minFee}
 import com.wavesplatform.it.transactions.NodesFromDocker
 import com.wavesplatform.it.{Docker, ReportingTestName, WaitForHeight2}
-import org.scalatest.{CancelAfterFailure, FreeSpec, Matchers}
+import org.scalatest.{FreeSpec, Matchers}
 
 import scala.concurrent.duration._
 
@@ -13,7 +13,6 @@ class NetworkSeparationTestSuite
     extends FreeSpec
     with Matchers
     with WaitForHeight2
-    with CancelAfterFailure
     with ReportingTestName
     with NodesFromDocker {
   import NetworkSeparationTestSuite._

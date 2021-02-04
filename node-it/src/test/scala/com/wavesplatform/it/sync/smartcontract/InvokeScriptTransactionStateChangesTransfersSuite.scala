@@ -10,10 +10,10 @@ import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Asset.Waves
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction.Payment
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class InvokeScriptTransactionStateChangesTransfersSuite extends BaseTransactionSuite with CancelAfterFailure {
-  private def dApp               = firstKeyPair
+class InvokeScriptTransactionStateChangesTransfersSuite extends BaseTransactionSuite {
+  private def dApp = firstKeyPair
+
   private def callerAndRecipient = secondKeyPair
 
   protected override def beforeAll(): Unit = {
@@ -22,7 +22,7 @@ class InvokeScriptTransactionStateChangesTransfersSuite extends BaseTransactionS
     val script = ScriptCompiler
       .compile(
         """
-      |{-# STDLIB_VERSION 4 #-}
+          |{-# STDLIB_VERSION 4 #-}
       |{-# CONTENT_TYPE DAPP #-}
       |
       |@Callable(inv)

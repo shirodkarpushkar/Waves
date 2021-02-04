@@ -13,13 +13,13 @@ import com.wavesplatform.state._
 import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
 import com.wavesplatform.transaction.smart.InvokeScriptTransaction.Payment
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
-import org.scalatest.CancelAfterFailure
 
-class InvokeMultiplePaymentsSuite extends BaseTransactionSuite with CancelAfterFailure {
-  private def dApp   = firstKeyPair
+class InvokeMultiplePaymentsSuite extends BaseTransactionSuite {
+  private def dApp = firstKeyPair
+
   private def caller = secondKeyPair
 
-  private lazy val dAppAddress: String   = dApp.toAddress.toString
+  private lazy val dAppAddress: String = dApp.toAddress.toString
   private lazy val callerAddress: String = caller.toAddress.toString
 
   private var asset1: IssuedAsset = _

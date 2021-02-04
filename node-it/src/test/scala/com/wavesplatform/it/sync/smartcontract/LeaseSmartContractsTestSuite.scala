@@ -23,7 +23,7 @@ class LeaseSmartContractsTestSuite extends BaseTransactionSuite with CancelAfter
     val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(acc0.toAddress.toString)
     val BalanceDetails(_, balance2, _, _, eff2) = miner.balanceDetails(thirdKeyPair.toAddress.toString)
 
-    sender.transfer(sender.keyPair, acc0.toAddress.toString, 10 * transferAmount, minFee, waitForTx = true).id
+    miner.transfer(miner.keyPair, acc0.toAddress.toString, 10 * transferAmount, minFee, waitForTx = true).id
 
     miner.assertBalances(firstAddress, balance1 + 10 * transferAmount, eff1 + 10 * transferAmount)
 
@@ -40,7 +40,7 @@ class LeaseSmartContractsTestSuite extends BaseTransactionSuite with CancelAfter
         """.stripMargin
 
     val script = ScriptCompiler(scriptText, isAssetScript = false, ScriptEstimatorV2).explicitGet()._1.bytes().base64
-    sender.setScript(acc0, Some(script), setScriptFee, waitForTx = true).id
+    miner.setScript(acc0, Some(script), setScriptFee, waitForTx = true).id
 
     val unsignedLeasing =
       LeaseTransaction
@@ -62,7 +62,7 @@ class LeaseSmartContractsTestSuite extends BaseTransactionSuite with CancelAfter
       unsignedLeasing.copy(proofs = Proofs(Seq(sigLeasingA, ByteStr.empty, sigLeasingC)))
 
     val leasingId =
-      sender.signedBroadcast(signedLeasing.json(), waitForTx = true).id
+      miner.signedBroadcast(signedLeasing.json(), waitForTx = true).id
 
     miner.assertBalances(
       firstAddress,
@@ -89,7 +89,7 @@ class LeaseSmartContractsTestSuite extends BaseTransactionSuite with CancelAfter
     val signedLeasingCancel =
       unsignedCancelLeasing.copy(proofs = Proofs(Seq(ByteStr.empty, sigLeasingCancelA, sigLeasingCancelB)))
 
-    sender.signedBroadcast(signedLeasingCancel.json(), waitForTx = true).id
+    miner.signedBroadcast(signedLeasingCancel.json(), waitForTx = true).id
 
     miner.assertBalances(
       firstAddress,

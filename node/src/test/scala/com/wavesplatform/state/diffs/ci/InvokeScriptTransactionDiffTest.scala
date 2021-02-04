@@ -597,12 +597,12 @@ class InvokeScriptTransactionDiffTest
         assertDiffAndState(Seq(TestBlock.create(genesis ++ Seq(setScript))), TestBlock.create(Seq(ci), Block.ProtoBlockVersion), fs) {
           case (blockDiff, newState) =>
             blockDiff.scriptsRun shouldBe 1
-            newState.accountData(genesis(0).recipient, "sender") shouldBe Some(BinaryDataEntry("sender", ByteStr(ci.sender.toAddress.bytes)))
+            newState.accountData(genesis(0).recipient, "sender") shouldBe Some(BinaryDataEntry("sender", ByteStr(ci.miner.toAddress.bytes)))
             newState.accountData(genesis(0).recipient, "argument") shouldBe Some(
               BinaryDataEntry("argument", ci.funcCallOpt.get.args.head.asInstanceOf[CONST_BYTESTR].bs)
             )
 
-            blockDiff.transactions(ci.id()).affected.contains(setScript.sender.toAddress) shouldBe true
+            blockDiff.transactions(ci.id()).affected.contains(setScript.miner.toAddress) shouldBe true
         }
 
     }
@@ -1293,7 +1293,7 @@ class InvokeScriptTransactionDiffTest
             .selfSigned(
               2.toByte,
               master,
-              ci.sender.toAddress,
+              ci.miner.toAddress,
               IssuedAsset(sponsoredAsset.id()),
               sponsoredAsset.quantity / 10,
               Waves,
@@ -1310,7 +1310,7 @@ class InvokeScriptTransactionDiffTest
           case (blockDiff, newState) =>
             blockDiff.scriptsRun shouldBe 1
             newState.balance(acc.toAddress, Waves) shouldBe amount
-            newState.balance(ci.sender.toAddress, IssuedAsset(sponsoredAsset.id())) shouldBe (sponsoredAsset.quantity / 10 - ci.fee)
+            newState.balance(ci.miner.toAddress, IssuedAsset(sponsoredAsset.id())) shouldBe (sponsoredAsset.quantity / 10 - ci.fee)
             newState.balance(master.toAddress, IssuedAsset(sponsoredAsset.id())) shouldBe (sponsoredAsset.quantity - sponsoredAsset.quantity / 10 + ci.fee)
         }
     }
@@ -1660,8 +1660,8 @@ class InvokeScriptTransactionDiffTest
           .expects(master.toAddress)
           .returning(Some(AccountScriptInfo(master.publicKey, script.explicitGet(), 10L, Map(1 -> Map(funcBinding -> 10L)))))
           .anyNumberOfTimes()
-        (blockchain.accountScript _).expects(invoke.sender.toAddress).returning(None).anyNumberOfTimes()
-        (blockchain.hasAccountScript _).expects(invoke.sender.toAddress).returning(false).anyNumberOfTimes()
+        (blockchain.accountScript _).expects(invoke.miner.toAddress).returning(None).anyNumberOfTimes()
+        (blockchain.hasAccountScript _).expects(invoke.miner.toAddress).returning(false).anyNumberOfTimes()
         (() => blockchain.activatedFeatures)
           .expects()
           .returning(Map(BlockchainFeatures.Ride4DApps.id -> 0))
@@ -1906,10 +1906,10 @@ class InvokeScriptTransactionDiffTest
       case (genesis, setScript, issue, sponsorFee, invoke) =>
         assertDiffEi(Seq(TestBlock.create(genesis ++ Seq(issue, sponsorFee, setScript))), TestBlock.create(Seq(invoke)), fsWithV5) { diff =>
           invoke.feeAssetId shouldBe sponsorFee.asset
-          invoke.dAppAddressOrAlias shouldBe invoke.sender.toAddress
+          invoke.dAppAddressOrAlias shouldBe invoke.miner.toAddress
 
           val dv           = diff.explicitGet()
-          val senderChange = dv.portfolios(invoke.sender.toAddress).balanceOf(sponsorFee.asset)
+          val senderChange = dv.portfolios(invoke.miner.toAddress).balanceOf(sponsorFee.asset)
           senderChange shouldBe 0L
         }
     }
@@ -1965,8 +1965,8 @@ class InvokeScriptTransactionDiffTest
         assertDiffAndState(Seq(TestBlock.create(genesisTxs)), TestBlock.create(Seq(invoke), Block.ProtoBlockVersion), fsWithV5) {
           case (diff, state) =>
             diff.scriptsRun shouldBe 0
-            diff.portfolios(invoke.sender.toAddress).balanceOf(invoke.feeAssetId)
-            state.balance(invoke.sender.toAddress, invoke.feeAssetId) shouldBe invoke.feeAssetId.fold(wavesBalance)(_ => sponsoredBalance) - invoke.fee
+            diff.portfolios(invoke.miner.toAddress).balanceOf(invoke.feeAssetId)
+            state.balance(invoke.miner.toAddress, invoke.feeAssetId) shouldBe invoke.feeAssetId.fold(wavesBalance)(_ => sponsoredBalance) - invoke.fee
             state.transactionInfo(invoke.id()).map(r => r._2 -> r._3) shouldBe Some((invoke, false))
         }
     }

@@ -123,8 +123,8 @@ class ReplTest extends BaseTransactionSuite with FailedTransactionSuiteLike[Stri
 
     overflowBlock()
     val failedTxs = sendTxsAndThenPriorityTx(
-      _ => sender.invokeScript(issuer, issuer.toAddress.toString, None, fee = invokeFee)._1.id,
-      () => sender.putData(issuer, priorityData, priorityFee).id
+      _ => miner.invokeScript(issuer, issuer.toAddress.toString, None, fee = invokeFee)._1.id,
+      () => miner.putData(issuer, priorityData, priorityFee).id
     ) { (failed, _) =>
       assertFailedTxs(failed)
     }

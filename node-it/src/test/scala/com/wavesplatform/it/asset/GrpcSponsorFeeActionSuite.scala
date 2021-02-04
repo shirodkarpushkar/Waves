@@ -395,7 +395,7 @@ class GrpcSponsorFeeActionSuite extends FreeSpec with GrpcBaseTransactionSuiteLi
 
     "SponsorFee is available for assets issued via transaction" in {
       val dApp = miner.createKeyPair()
-      miner.transfer(sender.keyPair, dApp.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
+      miner.transfer(miner.keyPair, dApp.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
       val assetId = miner.issue(dApp, waitForTx = true).id
 
       createDApp(
@@ -413,12 +413,12 @@ class GrpcSponsorFeeActionSuite extends FreeSpec with GrpcBaseTransactionSuiteLi
       )
 
       val tx = miner.invokeScript(miner.keyPair, dApp.toAddress.toString, Some("sponsorAsset"), waitForTx = true, fee = smartMinFee)
-      sender.debugStateChanges(tx._1.id).stateChanges.get.sponsorFees.head shouldBe SponsorFeeResponse(assetId, Some(1000))
+      miner.debugStateChanges(tx._1.id).stateChanges.get.sponsorFees.head shouldBe SponsorFeeResponse(assetId, Some(1000))
     }
 
     "Negative fee is not available" in {
       val dApp = miner.createKeyPair()
-      miner.transfer(sender.keyPair, dApp.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
+      miner.transfer(miner.keyPair, dApp.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
       val assetId = miner.issue(dApp, waitForTx = true).id
 
       createDApp(
@@ -443,7 +443,7 @@ class GrpcSponsorFeeActionSuite extends FreeSpec with GrpcBaseTransactionSuiteLi
 
     "SponsorFee is available only for assets issuing from current address" in {
       val issuer = miner.createKeyPair()
-      miner.transfer(sender.keyPair, issuer.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
+      miner.transfer(miner.keyPair, issuer.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
       val assetId = miner.issue(issuer, waitForTx = true).id
 
       val dApp = createDApp(
@@ -467,7 +467,7 @@ class GrpcSponsorFeeActionSuite extends FreeSpec with GrpcBaseTransactionSuiteLi
 
     "SponsorFee is not available for scripted assets" in {
       val dApp = miner.createKeyPair()
-      miner.transfer(sender.keyPair, dApp.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
+      miner.transfer(miner.keyPair, dApp.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
 
       val script  = ScriptCompiler.compile("true", ScriptEstimatorV2).explicitGet()._1.bytes().base64
       val assetId = miner.issue(dApp, script = Some(script), waitForTx = true).id
@@ -502,7 +502,7 @@ class GrpcSponsorFeeActionSuite extends FreeSpec with GrpcBaseTransactionSuiteLi
       .explicitGet()
       ._1
 
-    miner.transfer(sender.keyPair, address.publicKey.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
+    miner.transfer(miner.keyPair, address.publicKey.toAddress.toString, initialWavesBalance, minFee, waitForTx = true)
 
     nodes.waitForHeightAriseAndTxPresent(
       miner

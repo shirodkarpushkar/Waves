@@ -1,14 +1,14 @@
 package com.wavesplatform.it.sync.smartcontract.smartasset
 
 import com.wavesplatform.common.utils.EitherExt2
-import com.wavesplatform.it.BaseFunSuite
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{someAssetAmount, _}
+import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class AssetUnsupportedTransactionsSuite extends BaseFunSuite with TableDrivenPropertyChecks {
+class AssetUnsupportedTransactionsSuite extends BaseTransactionSuite with TableDrivenPropertyChecks {
 
   forAll(
     Table(
@@ -24,7 +24,7 @@ class AssetUnsupportedTransactionsSuite extends BaseFunSuite with TableDrivenPro
   ) { tx =>
     test(s"Smart Asset script should not support $tx") {
       try {
-        sender.issue(
+        miner.issue(
           firstKeyPair,
           "MyAsset",
           "Test Asset",
@@ -56,7 +56,7 @@ class AssetUnsupportedTransactionsSuite extends BaseFunSuite with TableDrivenPro
   }
 
   test("cannot sponsor scripted asset") {
-    val assetId = sender
+    val assetId = miner
       .issue(
         firstKeyPair,
         "MyAsset",
@@ -71,7 +71,7 @@ class AssetUnsupportedTransactionsSuite extends BaseFunSuite with TableDrivenPro
       )
       .id
     assertBadRequestAndMessage(
-      sender.sponsorAsset(firstKeyPair, assetId, 100, sponsorReducedFee + smartFee),
+      miner.sponsorAsset(firstKeyPair, assetId, 100, sponsorReducedFee + smartFee),
       "State check failed. Reason: Sponsorship smart assets is disabled."
     )
 

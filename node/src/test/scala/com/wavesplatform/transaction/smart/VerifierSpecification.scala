@@ -50,9 +50,9 @@ class VerifierSpecification extends PropSpec with PropertyChecks with Matchers w
           |}""".stripMargin
       val (script, complexity) = ScriptCompiler(scriptText, isAssetScript = false, estimator).explicitGet()
 
-      (bc.accountScript _).when(tx.sellOrder.sender.toAddress).returns(None)
-      (bc.accountScript _).when(tx.buyOrder.sender.toAddress).returns(Some(AccountScriptInfo(tx.buyOrder.sender, script, complexity)))
-      (bc.accountScript _).when(tx.sender.toAddress).returns(None)
+      (bc.accountScript _).when(tx.sellOrder.miner.toAddress).returns(None)
+      (bc.accountScript _).when(tx.buyOrder.miner.toAddress).returns(Some(AccountScriptInfo(tx.buyOrder.sender, script, complexity)))
+      (bc.accountScript _).when(tx.miner.toAddress).returns(None)
 
       (() => bc.height).when().returns(0)
 
@@ -132,7 +132,7 @@ class VerifierSpecification extends PropSpec with PropertyChecks with Matchers w
       tx.buyOrder.assetPair.priceAsset  -> None
     )
 
-    Seq(tx.sellOrder.sender.toAddress, tx.buyOrder.sender.toAddress, tx.sender.toAddress) foreach { address =>
+    Seq(tx.sellOrder.miner.toAddress, tx.buyOrder.miner.toAddress, tx.miner.toAddress) foreach { address =>
       (blockchain.accountScript _).when(address).returns(None)
     }
 

@@ -17,6 +17,8 @@ class CustomFeeTransactionSuite extends BaseTransactionSuite with CancelAfterFai
 
   import CustomFeeTransactionSuite._
 
+  private lazy val notMiner = nodes.find(!_.settings.minerSettings.enable).get
+
   override protected def nodeConfigs: Seq[Config] = Configs
 
   private val transferFee = 100000

@@ -29,14 +29,14 @@ class InvokeCalcIssueSuite extends BaseTransactionSuite with Matchers with Cance
 
   test("calculateAssetId should return right unique id for each invoke") {
 
-    sender.setScript(
+    miner.setScript(
       smartAcc,
       Some(ScriptCompiler.compile(dAppV4, ScriptEstimatorV3).explicitGet()._1.bytes().base64),
       fee = setScriptFee + smartFee,
       waitForTx = true
     )
     val smartAccAddress = smartAcc.toAddress.toString
-    sender
+    miner
       .invokeScript(
         callerAcc,
         smartAccAddress,
@@ -45,9 +45,9 @@ class InvokeCalcIssueSuite extends BaseTransactionSuite with Matchers with Cance
         fee = invokeFee + issueFee, // dAppV4 contains 1 Issue action
         waitForTx = true
       )
-    val assetId = sender.getDataByKey(smartAccAddress, "id").as[BinaryDataEntry].value.toString
+    val assetId = miner.getDataByKey(smartAccAddress, "id").as[BinaryDataEntry].value.toString
 
-    sender
+    miner
       .invokeScript(
         callerAcc,
         smartAccAddress,
@@ -56,12 +56,12 @@ class InvokeCalcIssueSuite extends BaseTransactionSuite with Matchers with Cance
         fee = invokeFee + issueFee, // dAppV4 contains 1 Issue action
         waitForTx = true
       )
-    val secondAssetId = sender.getDataByKey(smartAccAddress, "id").as[BinaryDataEntry].value.toString
+    val secondAssetId = miner.getDataByKey(smartAccAddress, "id").as[BinaryDataEntry].value.toString
 
-    sender.assetBalance(smartAccAddress, assetId).balance shouldBe 100
-    sender.assetBalance(smartAccAddress, secondAssetId).balance shouldBe 100
+    miner.assetBalance(smartAccAddress, assetId).balance shouldBe 100
+    miner.assetBalance(smartAccAddress, secondAssetId).balance shouldBe 100
 
-    val assetDetails = sender.assetsDetails(assetId)
+    val assetDetails = miner.assetsDetails(assetId)
     assetDetails.decimals shouldBe decimals
     assetDetails.name shouldBe assetName
     assetDetails.reissuable shouldBe reissuable

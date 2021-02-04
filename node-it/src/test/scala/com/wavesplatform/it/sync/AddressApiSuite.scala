@@ -1,28 +1,30 @@
 package com.wavesplatform.it.sync
 
+import java.net.URLDecoder
+
 import com.typesafe.config.Config
 import com.wavesplatform.api.http.ApiError.{CustomValidationError, TooBigArrayAllocation}
 import com.wavesplatform.it.api.SyncHttpApi._
-import com.wavesplatform.it.{BaseFunSuite, NTPTime, NodeConfigs}
+import com.wavesplatform.it.transactions.BaseTransactionSuite
+import com.wavesplatform.it.{NTPTime, NodeConfigs}
 import com.wavesplatform.state.StringDataEntry
 import com.wavesplatform.transaction.TxVersion
 import play.api.libs.json._
 
-import java.net.URLDecoder
 import scala.util.Random
 
-class AddressApiSuite extends BaseFunSuite with NTPTime {
+class AddressApiSuite extends BaseTransactionSuite with NTPTime {
   test("balance at height") {
-    val address = sender.createKeyPair().toAddress.stringRepr
-    sender.transfer(sender.keyPair, address, 1, waitForTx = true)
+    val address = miner.createKeyPair().toAddress.stringRepr
+    miner.transfer(miner.keyPair, address, 1, waitForTx = true)
     nodes.waitForHeightArise()
-    sender.transfer(sender.keyPair, address, 1, waitForTx = true)
+    miner.transfer(miner.keyPair, address, 1, waitForTx = true)
     nodes.waitForHeightArise()
-    sender.transfer(sender.keyPair, address, 1, waitForTx = true)
+    miner.transfer(miner.keyPair, address, 1, waitForTx = true)
     nodes.waitForHeightArise()
 
-    val Seq(_, h2, _) = sender.debugBalanceHistory(address)
-    val Seq((_, balance)) = sender.accountsBalances(Some(h2.height), Seq(address))
+    val Seq(_, h2, _)     = miner.debugBalanceHistory(address)
+    val Seq((_, balance)) = miner.accountsBalances(Some(h2.height), Seq(address))
     balance shouldBe 2
   }
 
@@ -40,11 +42,11 @@ class AddressApiSuite extends BaseFunSuite with NTPTime {
     val invalidRegexps = List("%5Ba-z", "%5Ba-z%5D%7B0", "%5Ba-z%5D%7B%2C5%7D")
     val data           = dataKeys.map(str => StringDataEntry(str, Random.nextString(16)))
     val dataFee        = calcDataFee(data, TxVersion.V1)
-    val txId           = sender.putData(firstKeyPair, data, dataFee).id
+    val txId           = miner.putData(firstKeyPair, data, dataFee).id
     nodes.waitForHeightAriseAndTxPresent(txId)
 
     for (regexp <- regexps) {
-      val matchedDataKeys = sender.getData(firstAddress, regexp).sortBy(_.key)
+      val matchedDataKeys = miner.getData(firstAddress, regexp).sortBy(_.key)
 
       val regexpPattern = URLDecoder.decode(regexp, "UTF-8").r.pattern
       withClue(s"regexp: $regexp\n") {
@@ -54,7 +56,7 @@ class AddressApiSuite extends BaseFunSuite with NTPTime {
 
     for (invalidRegexp <- invalidRegexps) {
       assertBadRequestAndMessage(
-        sender.getData(firstAddress, invalidRegexp),
+        miner.getData(firstAddress, invalidRegexp),
         "Cannot compile regex"
       )
     }

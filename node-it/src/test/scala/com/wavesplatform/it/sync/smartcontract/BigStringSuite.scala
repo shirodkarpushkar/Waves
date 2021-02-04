@@ -5,27 +5,22 @@ import com.wavesplatform.common.utils.{Base58, EitherExt2}
 import com.wavesplatform.crypto
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{minFee, setScriptFee, transferAmount}
+import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
-import com.wavesplatform.it.{BaseFunSuite, RandomKeyPair}
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Proofs
 import com.wavesplatform.transaction.lease.LeaseTransaction
 import com.wavesplatform.transaction.smart.SetScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 
-class BigStringSuite extends BaseFunSuite {
-  private def acc0      = firstKeyPair
-  private lazy val acc1 = RandomKeyPair()
-  private lazy val acc2 = RandomKeyPair()
+class BigStringSuite extends BaseTransactionSuite {
+  private def acc0 = firstKeyPair
+  private def acc1 = secondKeyPair
+  private def acc2 = thirdKeyPair
 
   test("set contract, make leasing and cancel leasing") {
     val bd1 = miner.balanceDetails(acc0.toAddress.toString)
     val bd2 = miner.balanceDetails(acc2.toAddress.toString)
-
-    val txId = sender.transfer(sender.keyPair, acc0.toAddress.toString, 10 * transferAmount, minFee).id
-    nodes.waitForHeightAriseAndTxPresent(txId)
-
-    miner.assertBalances(firstAddress, bd1.regular + 10 * transferAmount, bd1.effective + 10 * transferAmount)
 
     val scriptText = s"""
         let pkA = base58'${acc0.publicKey}'
@@ -43,12 +38,13 @@ class BigStringSuite extends BaseFunSuite {
         """.stripMargin
 
     val script = ScriptCompiler(scriptText, isAssetScript = false, ScriptEstimatorV2).explicitGet()._1
-    val setScriptTransaction = SetScriptTransaction
-      .selfSigned(1.toByte, acc0, Some(script), setScriptFee, System.currentTimeMillis())
-      .explicitGet()
-
-    val setScriptId = sender
-      .signedBroadcast(setScriptTransaction.json())
+    val setScriptId = miner
+      .signedBroadcast(
+        SetScriptTransaction
+          .selfSigned(1.toByte, acc0, Some(script), setScriptFee, System.currentTimeMillis())
+          .explicitGet()
+          .json()
+      )
       .id
 
     nodes.waitForHeightAriseAndTxPresent(setScriptId)
@@ -72,14 +68,13 @@ class BigStringSuite extends BaseFunSuite {
     val signedLeasing =
       unsignedLeasing.copy(proofs = Proofs(Seq(sigLeasingA, ByteStr.empty, sigLeasingC)))
 
-    assertBadRequestAndMessage(sender.signedBroadcast(signedLeasing.json()).id, "String size=32768 exceeds 32767 bytes")
+    assertBadRequestAndMessage(miner.signedBroadcast(signedLeasing.json()).id, "String size=32768 exceeds 32767 bytes")
 
     val leasingId = Base58.encode(unsignedLeasing.id().arr)
 
     nodes.waitForHeightArise()
     nodes(0).findTransactionInfo(leasingId) shouldBe None
 
-    miner.assertBalances(firstAddress, bd1.regular + 10 * transferAmount - setScriptFee, bd1.effective + 10 * transferAmount - setScriptFee)
     miner.assertBalances(acc2.toAddress.toString, bd2.regular, bd2.effective)
 
   }

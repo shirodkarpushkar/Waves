@@ -82,10 +82,10 @@ class TransactionsRouteSpec
             "type"            -> 4,
             "version"         -> version,
             "amount"          -> 1000000,
-            "senderPublicKey" -> sender.publicKey.toString,
+            "senderPublicKey" -> miner.publicKey.toString,
             "recipient"       -> recipient.toAddress
           )
-        } yield (sender.publicKey, tx)
+        } yield (miner.publicKey, tx)
       "TransferTransaction" in forAll(transferTxScenario) {
         case (_, transferTx) =>
           (addressTransactions.calculateFee _).expects(*).returning(Right((Asset.Waves, 100000L, 0L))).once()
@@ -106,7 +106,7 @@ class TransactionsRouteSpec
           tx = Json.obj(
             "type"            -> 11,
             "version"         -> version,
-            "senderPublicKey" -> Base58.encode(sender.publicKey.arr),
+            "senderPublicKey" -> Base58.encode(miner.publicKey.arr),
             "transfers" -> Json.arr(
               Json.obj(
                 "recipient" -> recipient1.toAddress,
@@ -118,7 +118,7 @@ class TransactionsRouteSpec
               )
             )
           )
-        } yield (sender.publicKey, tx)
+        } yield (miner.publicKey, tx)
       "MassTransferTransaction" in forAll(massTransferTxScenario) {
         case (_, transferTx) =>
           (addressTransactions.calculateFee _).expects(*).returning(Right((Asset.Waves, 200000L, 0L))).once()
@@ -143,10 +143,10 @@ class TransactionsRouteSpec
             "version"         -> version,
             "amount"          -> 1000000,
             "feeAssetId"      -> assetId.toString,
-            "senderPublicKey" -> Base58.encode(sender.publicKey.arr),
+            "senderPublicKey" -> Base58.encode(miner.publicKey.arr),
             "recipient"       -> recipient.toAddress
           )
-        } yield (sender.publicKey, tx, IssuedAsset(assetId))
+        } yield (miner.publicKey, tx, IssuedAsset(assetId))
       "without sponsorship" in forAll(transferTxWithAssetFeeScenario) {
         case (_, transferTx, _) =>
           (addressTransactions.calculateFee _).expects(*).returning(Right((Asset.Waves, 100000L, 0L))).once()
@@ -166,7 +166,7 @@ class TransactionsRouteSpec
           "version"         -> 2,
           "amount"          -> 1000000,
           "feeAssetId"      -> assetId.id.toString,
-          "senderPublicKey" -> Base58.encode(sender.arr),
+          "senderPublicKey" -> Base58.encode(miner.arr),
           "recipient"       -> accountGen.sample.get.toAddress
         )
 
@@ -187,7 +187,7 @@ class TransactionsRouteSpec
           "version"         -> 2,
           "amount"          -> 1000000,
           "feeAssetId"      -> assetId.id.toString,
-          "senderPublicKey" -> Base58.encode(sender.arr),
+          "senderPublicKey" -> Base58.encode(miner.arr),
           "recipient"       -> accountGen.sample.get.toAddress
         )
 
@@ -593,8 +593,8 @@ class TransactionsRouteSpec
       val sender: KeyPair = KeyPair(seed)
       val ist = InvokeScriptTransaction(
         TxVersion.V1,
-        sender.publicKey,
-        sender.toAddress,
+        miner.publicKey,
+        miner.toAddress,
         None,
         Seq.empty,
         500000L,
@@ -602,12 +602,12 @@ class TransactionsRouteSpec
         testTime.getTimestamp(),
         Proofs.empty,
         AddressScheme.current.chainId
-      ).signWith(sender.privateKey)
+      ).signWith(miner.privateKey)
       f(sender, ist)
     }
 
     "shows trace when trace is enabled" in withInvokeScriptTransaction { (sender, ist) =>
-      val accountTrace = AccountVerifierTrace(sender.toAddress, Some(GenericError("Error in account script")))
+      val accountTrace = AccountVerifierTrace(miner.toAddress, Some(GenericError("Error in account script")))
       (utxPoolSynchronizer.validateAndBroadcast _)
         .expects(*, None)
         .returning(
@@ -621,7 +621,7 @@ class TransactionsRouteSpec
     }
 
     "does not show trace when trace is disabled" in withInvokeScriptTransaction { (sender, ist) =>
-      val accountTrace = AccountVerifierTrace(sender.toAddress, Some(GenericError("Error in account script")))
+      val accountTrace = AccountVerifierTrace(miner.toAddress, Some(GenericError("Error in account script")))
       (utxPoolSynchronizer.validateAndBroadcast _)
         .expects(*, None)
         .returning(

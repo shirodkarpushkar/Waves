@@ -11,24 +11,24 @@ class SponsorshipForContactsSuite extends BaseTransactionSuite with CancelAfterF
 
   test("sponsor continues to be a sponsor after setScript for account, fee not changed for others") {
     val acc0    = firstKeyPair
-    val assetId = sender.issue(firstKeyPair, "asset", "decr", someAssetAmount, 0, reissuable = false, issueFee, 2, None, waitForTx = true).id
-    sender.sponsorAsset(firstKeyPair, assetId, 100, sponsorReducedFee, waitForTx = true)
-    sender.transfer(firstKeyPair, secondAddress, someAssetAmount / 2, minFee, Some(assetId), None, waitForTx = true)
+    val assetId = miner.issue(firstKeyPair, "asset", "decr", someAssetAmount, 0, reissuable = false, issueFee, 2, None, waitForTx = true).id
+    miner.sponsorAsset(firstKeyPair, assetId, 100, sponsorReducedFee, waitForTx = true)
+    miner.transfer(firstKeyPair, secondAddress, someAssetAmount / 2, minFee, Some(assetId), None, waitForTx = true)
 
     val script = ScriptCompiler(s"""false""".stripMargin, isAssetScript = false, ScriptEstimatorV2).explicitGet()._1.bytes().base64
-    val _      = sender.setScript(acc0, Some(script), setScriptFee, waitForTx = true)
+    val _      = miner.setScript(acc0, Some(script), setScriptFee, waitForTx = true)
 
-    val firstAddressBalance       = sender.wavesBalance(firstAddress)
-    val secondAddressBalance      = sender.wavesBalance(secondAddress)
-    val firstAddressAssetBalance  = sender.assetBalance(firstAddress, assetId).balance
-    val secondAddressAssetBalance = sender.assetBalance(secondAddress, assetId).balance
+    val firstAddressBalance       = miner.wavesBalance(firstAddress)
+    val secondAddressBalance      = miner.wavesBalance(secondAddress)
+    val firstAddressAssetBalance  = miner.assetBalance(firstAddress, assetId).balance
+    val secondAddressAssetBalance = miner.assetBalance(secondAddress, assetId).balance
 
-    sender.transfer(secondKeyPair, firstAddress, transferAmount, 100, None, Some(assetId), waitForTx = true)
+    miner.transfer(secondKeyPair, firstAddress, transferAmount, 100, None, Some(assetId), waitForTx = true)
 
-    sender.wavesBalance(firstAddress) shouldBe firstAddressBalance + transferAmount - minFee
-    sender.wavesBalance(secondAddress) shouldBe secondAddressBalance - transferAmount
-    sender.assetBalance(firstAddress, assetId).balance shouldBe firstAddressAssetBalance + 100
-    sender.assetBalance(secondAddress, assetId).balance shouldBe secondAddressAssetBalance - 100
+    miner.wavesBalance(firstAddress) shouldBe firstAddressBalance + transferAmount - minFee
+    miner.wavesBalance(secondAddress) shouldBe secondAddressBalance - transferAmount
+    miner.assetBalance(firstAddress, assetId).balance shouldBe firstAddressAssetBalance + 100
+    miner.assetBalance(secondAddress, assetId).balance shouldBe secondAddressAssetBalance - 100
   }
 
 }

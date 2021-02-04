@@ -31,25 +31,25 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
   private lazy val callerAddress: String = caller.toAddress.toString
 
   test("_send waves to dApp and caller accounts") {
-    sender.transfer(sender.keyPair, dAppAddress, 5.waves, minFee, waitForTx = true).id
-    sender.transfer(sender.keyPair, callerAddress, 5.waves, minFee, waitForTx = true).id
+    miner.transfer(miner.keyPair, dAppAddress, 5.waves, minFee, waitForTx = true).id
+    miner.transfer(miner.keyPair, callerAddress, 5.waves, minFee, waitForTx = true).id
 
   }
 
   test("_issue and transfer assets") {
-    dAppAsset = sender.issue(dApp, "dApp", "d", quantity, 0, waitForTx = true).id
-    callerAsset = sender.issue(caller, "caller", "c", quantity, 0, waitForTx = true).id
+    dAppAsset = miner.issue(dApp, "dApp", "d", quantity, 0, waitForTx = true).id
+    callerAsset = miner.issue(caller, "caller", "c", quantity, 0, waitForTx = true).id
     val script = Some(ScriptCompiler.compile("true", estimator).explicitGet()._1.bytes().base64)
-    smartAsset = sender.issue(dApp, "Smart", "s", quantity, 0, script = script, waitForTx = true).id
+    smartAsset = miner.issue(dApp, "Smart", "s", quantity, 0, script = script, waitForTx = true).id
 
-    sender.transfer(dApp, callerAddress, halfQuantity, minFee, Some(dAppAsset), waitForTx = true).id
-    sender.transfer(caller, dAppAddress, halfQuantity, minFee, Some(callerAsset), waitForTx = true).id
-    sender.transfer(dApp, callerAddress, halfQuantity, smartMinFee, Some(smartAsset), waitForTx = true).id
+    miner.transfer(dApp, callerAddress, halfQuantity, minFee, Some(dAppAsset), waitForTx = true).id
+    miner.transfer(caller, dAppAddress, halfQuantity, minFee, Some(callerAsset), waitForTx = true).id
+    miner.transfer(dApp, callerAddress, halfQuantity, smartMinFee, Some(smartAsset), waitForTx = true).id
   }
 
   test("_enable sponsorship") {
-    sender.sponsorAsset(dApp, dAppAsset, 1, waitForTx = true).id
-    sender.sponsorAsset(caller, callerAsset, 1, waitForTx = true).id
+    miner.sponsorAsset(dApp, dAppAsset, 1, waitForTx = true).id
+    miner.sponsorAsset(caller, callerAsset, 1, waitForTx = true).id
   }
 
   test("_set scripts to dApp and caller account") {
@@ -103,7 +103,7 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
       )
       .explicitGet()
       ._1
-    sender.setScript(dApp, Some(dAppScript.bytes().base64), waitForTx = true).id
+    miner.setScript(dApp, Some(dAppScript.bytes().base64), waitForTx = true).id
 
     val callerScript = ScriptCompiler
       .compile(
@@ -127,28 +127,28 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
       )
       .explicitGet()
       ._1
-    sender.setScript(caller, Some(callerScript.bytes().base64), waitForTx = true).id
+    miner.setScript(caller, Some(callerScript.bytes().base64), waitForTx = true).id
 
-    val dAppScriptInfo = sender.addressScriptInfo(dAppAddress)
+    val dAppScriptInfo = miner.addressScriptInfo(dAppAddress)
     dAppScriptInfo.script.isEmpty shouldBe false
     dAppScriptInfo.scriptText.isEmpty shouldBe false
     dAppScriptInfo.script.get.startsWith("base64:") shouldBe true
 
-    val smartCallerScriptInfo = sender.addressScriptInfo(callerAddress)
+    val smartCallerScriptInfo = miner.addressScriptInfo(callerAddress)
     smartCallerScriptInfo.script.isEmpty shouldBe false
     smartCallerScriptInfo.scriptText.isEmpty shouldBe false
     smartCallerScriptInfo.script.get.startsWith("base64:") shouldBe true
   }
 
   test("required fee in sponsored assets considers scripts count") {
-    dAppInitBalance = sender.wavesBalance(dAppAddress)
-    callerInitBalance = sender.wavesBalance(callerAddress)
+    dAppInitBalance = miner.wavesBalance(dAppAddress)
+    callerInitBalance = miner.wavesBalance(callerAddress)
     val paymentAmount  = 1
     val feeAmount      = 9
     val smartFeeAmount = 53
 
     assertBadRequestAndMessage(
-      sender.invokeScript(
+      miner.invokeScript(
         caller,
         dAppAddress,
         Some("payCallerGetDAppAsset"),
@@ -160,7 +160,7 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
     )
 
     assertApiError(
-      sender
+      miner
         .invokeScript(
           caller,
           dAppAddress,
@@ -172,7 +172,7 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
       AssertiveApiError(ScriptExecutionError.Id, "with 12 total scripts invoked does not exceed minimal value", matchMessage = true)
     )
 
-    sender
+    miner
       .invokeScript(
         caller,
         dAppAddress,
@@ -183,7 +183,7 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
         waitForTx = true
       )
 
-    sender
+    miner
       .invokeScript(
         caller,
         dAppAddress,
@@ -194,22 +194,22 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
         waitForTx = true
       )
 
-    sender.assetBalance(dAppAddress, dAppAsset).balance shouldBe halfQuantity + (feeAmount - 10) + smartFeeAmount
-    sender.assetBalance(dAppAddress, callerAsset).balance shouldBe halfQuantity + paymentAmount
-    sender.wavesBalance(dAppAddress) shouldBe dAppInitBalance - 0.009.waves - 0.053.waves
+    miner.assetBalance(dAppAddress, dAppAsset).balance shouldBe halfQuantity + (feeAmount - 10) + smartFeeAmount
+    miner.assetBalance(dAppAddress, callerAsset).balance shouldBe halfQuantity + paymentAmount
+    miner.wavesBalance(dAppAddress) shouldBe dAppInitBalance - 0.009.waves - 0.053.waves
 
-    sender.assetBalance(callerAddress, dAppAsset).balance shouldBe halfQuantity + (-feeAmount + 10) - smartFeeAmount
-    sender.assetBalance(callerAddress, callerAsset).balance shouldBe halfQuantity - paymentAmount
-    sender.wavesBalance(callerAddress) shouldBe callerInitBalance
+    miner.assetBalance(callerAddress, dAppAsset).balance shouldBe halfQuantity + (-feeAmount + 10) - smartFeeAmount
+    miner.assetBalance(callerAddress, callerAsset).balance shouldBe halfQuantity - paymentAmount
+    miner.wavesBalance(callerAddress) shouldBe callerInitBalance
   }
 
   test("dApp caller is dApp address") {
     val paymentAmount = 1
     val feeAmount     = 9
 
-    val dAppAssetBalance = sender.assetBalance(dAppAddress, dAppAsset).balance
-    val dAppWavesBalance = sender.wavesBalance(dAppAddress)
-    sender
+    val dAppAssetBalance = miner.assetBalance(dAppAddress, dAppAsset).balance
+    val dAppWavesBalance = miner.wavesBalance(dAppAddress)
+    miner
       .invokeScript(
         dApp,
         dAppAddress,
@@ -222,8 +222,8 @@ class InvokeScriptWithSponsorshipSuite extends BaseTransactionSuite with CancelA
       ._1
       .id
 
-    sender.assetBalance(dAppAddress, dAppAsset).balance shouldBe dAppAssetBalance
-    sender.wavesBalance(dAppAddress) shouldBe dAppWavesBalance - 0.009.waves
+    miner.assetBalance(dAppAddress, dAppAsset).balance shouldBe dAppAssetBalance
+    miner.wavesBalance(dAppAddress) shouldBe dAppWavesBalance - 0.009.waves
   }
 
 }

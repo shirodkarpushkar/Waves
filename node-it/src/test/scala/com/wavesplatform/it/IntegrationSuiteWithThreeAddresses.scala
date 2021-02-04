@@ -31,7 +31,7 @@ trait IntegrationSuiteWithThreeAddresses extends BaseSuiteLike with IntegrationT
     miner.massTransfer(
       miner.keyPair,
       List(firstAddress, secondAddress, thirdAddress).map(a => MassTransferTransaction.Transfer(a, defaultBalance)),
-      0.002.waves,
+      0.003.waves,
       waitForTx = true
     )
   }

@@ -24,6 +24,7 @@ every month a foundation makes payments from two MassTransactions(type == 11):
  */
 
 class MassTransferSmartContractSuite extends BaseTransactionSuite with CancelAfterFailure {
+  private lazy val notMiner = nodes.find(!_.settings.minerSettings.enable).get
   private lazy val fourthAddress: String = notMiner.createKeyPair().toAddress.toString
 
   test("airdrop emulation via MassTransfer") {

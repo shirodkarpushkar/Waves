@@ -3,13 +3,14 @@ package com.wavesplatform.it.sync.transactions
 import com.typesafe.config.Config
 import com.wavesplatform.common.utils._
 import com.wavesplatform.features.{BlockchainFeatureStatus, BlockchainFeatures}
+import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync.{issueFee, scriptBase64, setAssetScriptFee, someAssetAmount}
-import com.wavesplatform.it.{BaseFunSuite, NodeConfigs}
+import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 
-class SetAssetScriptTxFeatureSuite extends BaseFunSuite {
+class SetAssetScriptTxFeatureSuite extends BaseTransactionSuite {
 
   private val featureActivationHeight = 8
 
@@ -33,7 +34,7 @@ class SetAssetScriptTxFeatureSuite extends BaseFunSuite {
   override def beforeAll(): Unit = {
     super.beforeAll()
 
-    assetId = sender
+    assetId = miner
       .issue(
         firstKeyPair,
         "SetAssetScript",
@@ -52,7 +53,7 @@ class SetAssetScriptTxFeatureSuite extends BaseFunSuite {
 
   test("cannot transact without activated feature") {
     assertBadRequestAndResponse(
-      sender.setAssetScript(assetId, firstKeyPair, setAssetScriptFee, Some(scriptBase64)).id,
+      miner.setAssetScript(assetId, firstKeyPair, setAssetScriptFee, Some(scriptBase64)).id,
       s"${BlockchainFeatures.SmartAssets.description} feature has not been activated yet"
     )
   }
@@ -60,7 +61,7 @@ class SetAssetScriptTxFeatureSuite extends BaseFunSuite {
   test("can transact after feature activation") {
     nodes.waitForHeight(featureActivationHeight)
 
-    sender.featureActivationStatus(BlockchainFeatures.SmartAssets.id).blockchainStatus shouldBe BlockchainFeatureStatus.Activated
+    miner.featureActivationStatus(BlockchainFeatures.SmartAssets.id).blockchainStatus shouldBe BlockchainFeatureStatus.Activated
 
     val script = ScriptCompiler
       .compile(
@@ -76,7 +77,7 @@ class SetAssetScriptTxFeatureSuite extends BaseFunSuite {
       .bytes()
       .base64
 
-    val txId = sender
+    val txId = miner
       .setAssetScript(
         assetId,
         firstKeyPair,

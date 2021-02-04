@@ -49,10 +49,10 @@ class UtilsEstimatorToggleSuite extends FunSuite with BaseSuiteLike {
         .bytes()
         .base64
 
-    sender.scriptEstimate(compiledScript).complexity shouldBe v1Estimation
-    sender.waitForHeight(estimatorV2ActivationHeight)
-    sender.scriptEstimate(compiledScript).complexity shouldBe v2Estimation
-    sender.waitForHeight(estimatorV3ActivationHeight)
-    sender.scriptEstimate(compiledScript).complexity shouldBe v3Estimation
+    miner.scriptEstimate(compiledScript).complexity shouldBe v1Estimation
+    miner.waitForHeight(estimatorV2ActivationHeight)
+    miner.scriptEstimate(compiledScript).complexity shouldBe v2Estimation
+    miner.waitForHeight(estimatorV3ActivationHeight)
+    miner.scriptEstimate(compiledScript).complexity shouldBe v3Estimation
   }
 }

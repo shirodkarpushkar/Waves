@@ -3,17 +3,18 @@ package com.wavesplatform.it.sync.smartcontract
 import com.typesafe.config.Config
 import com.wavesplatform.common.state.ByteStr
 import com.wavesplatform.common.utils.EitherExt2
+import com.wavesplatform.it.NodeConfigs
 import com.wavesplatform.it.api.SyncHttpApi._
 import com.wavesplatform.it.sync._
+import com.wavesplatform.it.transactions.BaseTransactionSuite
 import com.wavesplatform.it.util._
-import com.wavesplatform.it.{BaseFunSuite, NodeConfigs}
 import com.wavesplatform.lang.v1.estimator.v2.ScriptEstimatorV2
 import com.wavesplatform.transaction.Asset.{IssuedAsset, Waves}
 import com.wavesplatform.transaction.smart.SetScriptTransaction
 import com.wavesplatform.transaction.smart.script.ScriptCompiler
 import com.wavesplatform.transaction.transfer.TransferTransaction
 
-class RideFuncSuite extends BaseFunSuite {
+class RideFuncSuite extends BaseTransactionSuite {
   private val estimator = ScriptEstimatorV2
 
   override protected def nodeConfigs: Seq[Config] =
@@ -23,14 +24,14 @@ class RideFuncSuite extends BaseFunSuite {
       .buildNonConflicting()
 
   test("assetBalance() verification") {
-    val asset = sender
+    val asset = miner
       .issue(firstKeyPair, "SomeCoin", "SomeDescription", someAssetAmount, 0, reissuable = false, issueFee, 2, waitForTx = true)
       .id
 
-    val newAddress   = sender.createKeyPair()
+    val newAddress   = miner.createKeyPair()
     val pkNewAddress = newAddress
 
-    sender.transfer(firstKeyPair, newAddress.toAddress.toString, 10.waves, minFee, waitForTx = true)
+    miner.transfer(firstKeyPair, newAddress.toAddress.toString, 10.waves, minFee, waitForTx = true)
 
     val scriptSrc =
       s"""
@@ -43,13 +44,13 @@ class RideFuncSuite extends BaseFunSuite {
     val compiled = ScriptCompiler(scriptSrc, isAssetScript = false, estimator).explicitGet()._1
 
     val tx =
-      sender.signedBroadcast(
+      miner.signedBroadcast(
         SetScriptTransaction.selfSigned(1.toByte, pkNewAddress, Some(compiled), setScriptFee, System.currentTimeMillis()).explicitGet().json()
       )
     nodes.waitForHeightAriseAndTxPresent(tx.id)
 
     assertBadRequestAndResponse(
-      sender.signedBroadcast(
+      miner.signedBroadcast(
         TransferTransaction
           .selfSigned(2.toByte, pkNewAddress, pkNewAddress.toAddress, Waves, 1.waves, Waves, smartMinFee, ByteStr.empty, System.currentTimeMillis())
           .explicitGet()
@@ -58,7 +59,7 @@ class RideFuncSuite extends BaseFunSuite {
       "Transaction is not allowed by account-script"
     )
 
-    sender.signedBroadcast(
+    miner.signedBroadcast(
       TransferTransaction
         .selfSigned(
           2.toByte,
@@ -76,7 +77,7 @@ class RideFuncSuite extends BaseFunSuite {
       waitForTx = true
     )
 
-    val transfer = sender.signedBroadcast(
+    val transfer = miner.signedBroadcast(
       TransferTransaction
         .selfSigned(2.toByte, pkNewAddress, pkNewAddress.toAddress, Waves, 1.waves, Waves, smartMinFee, ByteStr.empty, System.currentTimeMillis())
         .explicitGet()
@@ -95,7 +96,7 @@ class RideFuncSuite extends BaseFunSuite {
     val updated = ScriptCompiler(udpatedScript, isAssetScript = false, estimator).explicitGet()._1
 
     val updTx =
-      sender.signedBroadcast(
+      miner.signedBroadcast(
         SetScriptTransaction
           .selfSigned(1.toByte, pkNewAddress, Some(updated), setScriptFee + smartFee, System.currentTimeMillis())
           .explicitGet()
@@ -104,7 +105,7 @@ class RideFuncSuite extends BaseFunSuite {
     nodes.waitForHeightAriseAndTxPresent(updTx.id)
 
     assertBadRequestAndResponse(
-      sender.signedBroadcast(
+      miner.signedBroadcast(
         TransferTransaction
           .selfSigned(2.toByte, pkNewAddress, pkNewAddress.toAddress, Waves, 1.waves, Waves, smartMinFee, ByteStr.empty, System.currentTimeMillis())
           .explicitGet()
@@ -113,7 +114,7 @@ class RideFuncSuite extends BaseFunSuite {
       "Transaction is not allowed by account-script"
     )
 
-    sender.signedBroadcast(
+    miner.signedBroadcast(
       TransferTransaction
         .selfSigned(
           2.toByte,
@@ -131,7 +132,7 @@ class RideFuncSuite extends BaseFunSuite {
       waitForTx = true
     )
 
-    val transferAfterUpd = sender.signedBroadcast(
+    val transferAfterUpd = miner.signedBroadcast(
       TransferTransaction
         .selfSigned(2.toByte, pkNewAddress, pkNewAddress.toAddress, Waves, 1.waves, Waves, smartMinFee, ByteStr.empty, System.currentTimeMillis())
         .explicitGet()
@@ -160,12 +161,12 @@ class RideFuncSuite extends BaseFunSuite {
 
     val compiledScript = ScriptCompiler.compile(scriptText, estimator).explicitGet()._1
 
-    val newAddress   = sender.createKeyPair()
+    val newAddress   = miner.createKeyPair()
     val pkNewAddress = newAddress
-    sender.transfer(firstKeyPair, newAddress.toAddress.toString, 10.waves, minFee, waitForTx = true)
+    miner.transfer(firstKeyPair, newAddress.toAddress.toString, 10.waves, minFee, waitForTx = true)
 
     val scriptSet          = SetScriptTransaction.selfSigned(1.toByte, pkNewAddress, Some(compiledScript), setScriptFee, System.currentTimeMillis())
-    val scriptSetBroadcast = sender.signedBroadcast(scriptSet.explicitGet().json())
+    val scriptSetBroadcast = miner.signedBroadcast(scriptSet.explicitGet().json())
     nodes.waitForHeightAriseAndTxPresent(scriptSetBroadcast.id)
 
     val transfer = TransferTransaction.selfSigned(
@@ -179,7 +180,7 @@ class RideFuncSuite extends BaseFunSuite {
       ByteStr.empty,
       System.currentTimeMillis()
     )
-    val transferBroadcast = sender.signedBroadcast(transfer.explicitGet().json())
+    val transferBroadcast = miner.signedBroadcast(transfer.explicitGet().json())
     nodes.waitForHeightAriseAndTxPresent(transferBroadcast.id)
   }
 
@@ -206,13 +207,13 @@ class RideFuncSuite extends BaseFunSuite {
       .explicitGet()
       ._1
 
-    val newAddress = sender.createKeyPair()
-    sender.transfer(firstKeyPair, newAddress.toAddress.toString, 10.waves, minFee, waitForTx = true)
+    val newAddress = miner.createKeyPair()
+    miner.transfer(firstKeyPair, newAddress.toAddress.toString, 10.waves, minFee, waitForTx = true)
 
-    val setScript = sender.setScript(newAddress, Some(script.bytes().base64), setScriptFee)
+    val setScript = miner.setScript(newAddress, Some(script.bytes().base64), setScriptFee)
     nodes.waitForHeightAriseAndTxPresent(setScript.id)
 
-    val transfer = sender.transfer(newAddress, newAddress.toAddress.toString, 1.waves, minFee + (2 * smartFee))
+    val transfer = miner.transfer(newAddress, newAddress.toAddress.toString, 1.waves, minFee + (2 * smartFee))
     nodes.waitForHeightAriseAndTxPresent(transfer.id)
   }
 }

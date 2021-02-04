@@ -30,12 +30,12 @@ class BigLetChain extends BaseFunSuite {
 
     val compiledScript = ScriptCompiler.compile(scriptText, ScriptEstimatorV2).explicitGet()._1
 
-    val pkNewAddress = sender.createKeyPair()
+    val pkNewAddress = miner.createKeyPair()
 
-    sender.transfer(firstKeyPair, pkNewAddress.toAddress.toString, 10.waves, minFee, waitForTx = true)
+    miner.transfer(miner.keyPair, pkNewAddress.toAddress.toString, 10.waves, minFee, waitForTx = true)
 
     val scriptSet          = SetScriptTransaction.selfSigned(1.toByte, pkNewAddress, Some(compiledScript), setScriptFee, System.currentTimeMillis())
-    val scriptSetBroadcast = sender.signedBroadcast(scriptSet.explicitGet().json())
+    val scriptSetBroadcast = miner.signedBroadcast(scriptSet.explicitGet().json())
     nodes.waitForHeightAriseAndTxPresent(scriptSetBroadcast.id)
 
     val transfer = TransferTransaction.selfSigned(
@@ -49,7 +49,7 @@ class BigLetChain extends BaseFunSuite {
       ByteStr.empty,
       System.currentTimeMillis()
     )
-    val transferBroadcast = sender.signedBroadcast(transfer.explicitGet().json())
+    val transferBroadcast = miner.signedBroadcast(transfer.explicitGet().json())
     nodes.waitForHeightAriseAndTxPresent(transferBroadcast.id)
   }
 }

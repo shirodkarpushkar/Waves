@@ -34,12 +34,12 @@ class ScriptExecutionErrorSuite extends BaseTransactionSuite with CancelAfterFai
 
     val compiled = ScriptCompiler(scriptSrc, isAssetScript = false, ScriptEstimatorV2).explicitGet()._1
 
-    val tx = sender.signedBroadcast(SetScriptTransaction.selfSigned(1.toByte, thirdKeyPair, Some(compiled), setScriptFee, ts).explicitGet().json())
+    val tx = miner.signedBroadcast(SetScriptTransaction.selfSigned(1.toByte, thirdKeyPair, Some(compiled), setScriptFee, ts).explicitGet().json())
     nodes.waitForHeightAriseAndTxPresent(tx.id)
 
     val alias = Alias.fromString(s"alias:${AddressScheme.current.chainId.toChar}:asdasdasdv").explicitGet()
     assertBadRequestAndResponse(
-      sender.signedBroadcast(CreateAliasTransaction.selfSigned(Transaction.V2, thirdKeyPair, alias, minFee + smartFee, ts).explicitGet().json()),
+      miner.signedBroadcast(CreateAliasTransaction.selfSigned(Transaction.V2, thirdKeyPair, alias, minFee + smartFee, ts).explicitGet().json()),
       "Your transaction has incorrect type."
     )
   }
@@ -52,7 +52,7 @@ class ScriptExecutionErrorSuite extends BaseTransactionSuite with CancelAfterFai
       )
     ).explicitGet()
 
-    val tx = sender.signedBroadcast(
+    val tx = miner.signedBroadcast(
       SetScriptTransaction
         .selfSigned(1.toByte, firstKeyPair, Some(script), setScriptFee, ts)
         .explicitGet()
@@ -61,7 +61,7 @@ class ScriptExecutionErrorSuite extends BaseTransactionSuite with CancelAfterFai
     nodes.waitForHeightAriseAndTxPresent(tx.id)
 
     assertBadRequestAndResponse(
-      sender.signedBroadcast(
+      miner.signedBroadcast(
         TransferTransaction
           .selfSigned(2.toByte, firstKeyPair, secondKeyPair.toAddress, Waves, 1000, Waves, minFee + smartFee, ByteStr.empty, ts)
           .explicitGet()

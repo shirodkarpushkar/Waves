@@ -22,8 +22,8 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
   protected override def beforeAll(): Unit = {
     super.beforeAll()
     // explicitly create two more addresses in node's wallet
-    sender.postForm("/addresses")
-    sender.postForm("/addresses")
+    miner.postForm("/addresses")
+    miner.postForm("/addresses")
   }
 
   override protected def nodeConfigs: Seq[Config] =
@@ -36,7 +36,7 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
 
   test("alias create") {
     val json =
-      sender.postJsonWithApiKey("/alias/create", CreateAliasRequest("testalias", Some(1.toByte), sender = Some(firstAddress), fee = Some(minFee)))
+      miner.postJsonWithApiKey("/alias/create", CreateAliasRequest("testalias", Some(1.toByte), sender = Some(firstAddress), fee = Some(minFee)))
     val tx = Json.parse(json.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(tx)
   }
@@ -44,13 +44,13 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
   test("assets masstransfer") {
     val fee       = calcMassTransferFee(2)
     val transfers = List(Transfer(secondAddress, 1.waves), Transfer(thirdAddress, 2.waves))
-    val json      = sender.postJson("/assets/masstransfer", MassTransferRequest(None, None, firstAddress, transfers, fee))
+    val json      = miner.postJson("/assets/masstransfer", MassTransferRequest(None, None, firstAddress, transfers, fee))
     val tx        = Json.parse(json.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(tx)
   }
 
   test("assets transfer") {
-    val json = sender.postJson(
+    val json = miner.postJson(
       "/assets/transfer",
       TransferRequest(Some(1.toByte), Some(firstAddress), None, secondAddress, None, transferAmount, None, minFee, None, None, None)
     )
@@ -69,11 +69,11 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
       "fee"         -> issueFee
     )
 
-    val issueJson = sender.postJson("/assets/issue", request)
+    val issueJson = miner.postJson("/assets/issue", request)
     val issue     = Json.parse(issueJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(issue)
 
-    val burnJson = sender.postJson(
+    val burnJson = miner.postJson(
       "/assets/burn",
       Json.obj(
         "sender"  -> firstAddress,
@@ -85,7 +85,7 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
     val burn = Json.parse(burnJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(burn)
 
-    val reissueJson = sender.postJson(
+    val reissueJson = miner.postJson(
       "/assets/reissue",
       Json.obj(
         "sender"     -> firstAddress,
@@ -98,7 +98,7 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
     val reissue = Json.parse(reissueJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(reissue)
 
-    val sponsorJson = sender.postJson("/assets/sponsor", SponsorFeeRequest(Some(1.toByte), firstAddress, issue, Some(100L), sponsorFee))
+    val sponsorJson = miner.postJson("/assets/sponsor", SponsorFeeRequest(Some(1.toByte), firstAddress, issue, Some(100L), sponsorFee))
     val sponsor     = Json.parse(sponsorJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(sponsor)
   }
@@ -108,14 +108,14 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
     val bd2 = miner.balanceDetails(secondAddress)
 
     val leaseJson =
-      sender.postJson("/leasing/lease", LeaseRequest(None, Some(firstAddress), None, secondAddress, leasingAmount, minFee, None, None, None))
+      miner.postJson("/leasing/lease", LeaseRequest(None, Some(firstAddress), None, secondAddress, leasingAmount, minFee, None, None, None))
     val leaseId = Json.parse(leaseJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(leaseId)
 
     miner.assertBalances(firstAddress, bd1.regular - minFee, bd1.effective - leasingAmount - minFee)
     miner.assertBalances(secondAddress, bd2.regular, bd2.effective + leasingAmount)
 
-    val leaseCancelJson = sender.postJson(
+    val leaseCancelJson = miner.postJson(
       "/leasing/cancel",
       Json.obj(
         "sender"  -> firstAddress,
@@ -139,7 +139,7 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
       StringDataEntry("str", "AAA-AAA")
     )
     val fee  = calcDataFee(data, TxVersion.V1)
-    val json = sender.postJson("/addresses/data", DataRequest(1.toByte, firstAddress, data, fee))
+    val json = miner.postJson("/addresses/data", DataRequest(1.toByte, firstAddress, data, fee))
     val tx   = Json.parse(json.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(tx)
   }
@@ -153,10 +153,10 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
       "amount"    -> transferAmount
     )
 
-    val signedRequestResponse = sender.postJsonWithApiKey(s"/transactions/sign/$firstAddress", json)
+    val signedRequestResponse = miner.postJsonWithApiKey(s"/transactions/sign/$firstAddress", json)
     val transfer              = Json.parse(signedRequestResponse.getResponseBody).as[TransferRequest]
 
-    val transferIdJson = sender.postJson("/assets/broadcast/transfer", transfer)
+    val transferIdJson = miner.postJson("/assets/broadcast/transfer", transfer)
     val transferId     = Json.parse(transferIdJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(transferId)
   }
@@ -170,10 +170,10 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
       "amount"    -> transferAmount
     )
 
-    val r1    = sender.postJsonWithApiKey(s"/transactions/sign/$firstAddress", jsonL)
+    val r1    = miner.postJsonWithApiKey(s"/transactions/sign/$firstAddress", jsonL)
     val lease = Json.parse(r1.getResponseBody).as[LeaseRequest]
 
-    val leaseIdJson = sender.postJson("/leasing/broadcast/lease", lease)
+    val leaseIdJson = miner.postJson("/leasing/broadcast/lease", lease)
     val leaseId     = Json.parse(leaseIdJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(leaseId)
 
@@ -184,10 +184,10 @@ class ObsoleteHandlersSuite extends BaseTransactionSuite with BeforeAndAfterAll 
       "leaseId" -> leaseId
     )
 
-    val r2     = sender.postJsonWithApiKey(s"/transactions/sign/$firstAddress", jsonLC)
+    val r2     = miner.postJsonWithApiKey(s"/transactions/sign/$firstAddress", jsonLC)
     val leaseC = Json.parse(r2.getResponseBody).as[LeaseCancelRequest]
 
-    val leaseCIdJson = sender.postJson("/leasing/broadcast/cancel", leaseC)
+    val leaseCIdJson = miner.postJson("/leasing/broadcast/cancel", leaseC)
     val leaseCId     = Json.parse(leaseCIdJson.getResponseBody).as[Transaction].id
     nodes.waitForTransaction(leaseCId)
   }

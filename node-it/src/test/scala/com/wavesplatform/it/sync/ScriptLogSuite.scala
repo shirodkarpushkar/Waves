@@ -68,14 +68,14 @@ class ScriptLogSuite extends BaseFunSuite {
         BinaryDataEntry(s"k$i", ByteStr(bytes))
       }).toList
 
-    sender.putData(scriptedKP, data, ENOUGH_FEE, waitForTx = true).id
+    miner.putData(scriptedKP, data, ENOUGH_FEE, waitForTx = true).id
 
     val script = ScriptCompiler(scriptSrc, isAssetScript = false, ScriptEstimatorV2).explicitGet()._1
     val setScriptTransaction = SetScriptTransaction
       .selfSigned(1.toByte, scriptedKP, Some(script), setScriptFee, System.currentTimeMillis())
       .explicitGet()
 
-    val sstx = sender.signedBroadcast(setScriptTransaction.json()).id
+    val sstx = miner.signedBroadcast(setScriptTransaction.json()).id
 
     nodes.waitForHeightAriseAndTxPresent(sstx)
 
@@ -97,14 +97,14 @@ class ScriptLogSuite extends BaseFunSuite {
         )
         .explicitGet()
 
-    assertApiErrorRaised(sender.signedBroadcast(mkInvData().json()))
+    assertApiErrorRaised(miner.signedBroadcast(mkInvData().json()))
 
     def async = com.wavesplatform.it.api.AsyncHttpApi.NodeAsyncHttpApi _
 
     val requests =
       (0 to 100)
         .map { _ =>
-          async(sender).expectSignedBroadcastRejected(mkInvData().json())
+          async(miner).expectSignedBroadcastRejected(mkInvData().json())
         }
 
     val result = Future
@@ -118,6 +118,6 @@ class ScriptLogSuite extends BaseFunSuite {
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    sender.transfer(sender.keyPair, scriptedAddress, 1000.waves, minFee, waitForTx = true)
+    miner.transfer(miner.keyPair, scriptedAddress, 1000.waves, minFee, waitForTx = true)
   }
 }

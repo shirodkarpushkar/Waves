@@ -21,8 +21,8 @@ class InvokeScriptErrorMsgSuite extends BaseTransactionSuite with CancelAfterFai
   protected override def beforeAll(): Unit = {
     super.beforeAll()
 
-    sender.transfer(sender.keyPair, recipient = contractAddress, assetId = None, amount = 5.waves, fee = minFee, waitForTx = true).id
-    sender.transfer(sender.keyPair, recipient = contractAddress, assetId = None, amount = 5.waves, fee = minFee, waitForTx = true).id
+    miner.transfer(miner.keyPair, recipient = contractAddress, assetId = None, amount = 5.waves, fee = minFee, waitForTx = true).id
+    miner.transfer(miner.keyPair, recipient = contractAddress, assetId = None, amount = 5.waves, fee = minFee, waitForTx = true).id
 
     val scriptText =
       """
@@ -45,13 +45,13 @@ class InvokeScriptErrorMsgSuite extends BaseTransactionSuite with CancelAfterFai
         |}
         |""".stripMargin
     val script = ScriptCompiler.compile(scriptText, ScriptEstimatorV2).explicitGet()._1.bytes().base64
-    sender.setScript(contract, Some(script), setScriptFee, waitForTx = true).id
+    miner.setScript(contract, Some(script), setScriptFee, waitForTx = true).id
 
-    sender.setScript(caller, Some(scriptBase64), setScriptFee, waitForTx = true).id
+    miner.setScript(caller, Some(scriptBase64), setScriptFee, waitForTx = true).id
   }
 
   test("error message is informative") {
-    val asset1 = sender
+    val asset1 = miner
       .issue(
         caller,
         "MyAsset1",
@@ -65,7 +65,7 @@ class InvokeScriptErrorMsgSuite extends BaseTransactionSuite with CancelAfterFai
       .id
 
     assertBadRequestAndMessage(
-      sender.invokeScript(
+      miner.invokeScript(
         caller,
         contractAddress,
         Some("f"),
@@ -79,7 +79,7 @@ class InvokeScriptErrorMsgSuite extends BaseTransactionSuite with CancelAfterFai
     )
 
     assertApiError(
-      sender
+      miner
         .invokeScript(
           caller,
           contractAddress,

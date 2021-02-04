@@ -21,12 +21,12 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
       val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
 
       val issueTx =
-        sender
+        miner
           .issue(firstKeyPair, assetName, assetDescription, someAssetAmount, 2, reissuable = true, issueFee, version = v, script = scriptText(v))
       nodes.waitForHeightAriseAndTxPresent(issueTx.id)
       if (v > 2) {
         issueTx.chainId shouldBe Some(AddressScheme.current.chainId)
-        sender.transactionInfo[IssueTransactionInfo](issueTx.id).chainId shouldBe Some(AddressScheme.current.chainId)
+        miner.transactionInfo[IssueTransactionInfo](issueTx.id).chainId shouldBe Some(AddressScheme.current.chainId)
       }
 
       miner.assertBalances(firstAddress, balance1 - issueFee, eff1 - issueFee)
@@ -41,13 +41,13 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
       val BalanceDetails(_, balance1, _, _, eff1) = miner.balanceDetails(firstAddress)
 
       val issuedAssetId =
-        sender
+        miner
           .issue(firstKeyPair, assetName, assetDescription, someAssetAmount, 2, reissuable = false, issueFee, version = v, script = scriptText(v))
           .id
       nodes.waitForHeightAriseAndTxPresent(issuedAssetId)
 
       val issuedAssetIdSameAsset =
-        sender
+        miner
           .issue(firstKeyPair, assetName, assetDescription, someAssetAmount, 2, reissuable = true, issueFee, version = v, script = scriptText(v))
           .id
       nodes.waitForHeightAriseAndTxPresent(issuedAssetIdSameAsset)
@@ -68,7 +68,7 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
       scriptOpt: Option[String] = None,
       version: Byte
   ) =
-    sender.signedBroadcast(
+    miner.signedBroadcast(
       Json.obj(
         "type"            -> IssueTransaction.typeId,
         "name"            -> name,
@@ -93,7 +93,7 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
       val eff1             = miner.balanceDetails(firstAddress).effective
       val bigAssetFee      = eff1 + 1.waves
 
-      assertApiError(sender.issue(firstKeyPair, assetName, assetDescription, someAssetAmount, 2, reissuable = false, bigAssetFee, version = v)) {
+      assertApiError(miner.issue(firstKeyPair, assetName, assetDescription, someAssetAmount, 2, reissuable = false, bigAssetFee, version = v)) {
         error =>
           error.message should include("Accounts balance errors")
       }
@@ -133,7 +133,7 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
         }
 
         assertApiError(
-          sender.signedBroadcast(json),
+          miner.signedBroadcast(json),
           CustomValidationError(s"ScriptParseError($error)")
         )
       }
@@ -165,7 +165,7 @@ class IssueTransactionSuite extends BaseTransactionSuite with TableDrivenPropert
 
   test(s"Not able to create asset without name") {
     for (v <- issueTxSupportedVersions) {
-      assertApiError(sender.issue(firstKeyPair, "", "", someAssetAmount, 2, reissuable = false, issueFee, version = v)) { error =>
+      assertApiError(miner.issue(firstKeyPair, "", "", someAssetAmount, 2, reissuable = false, issueFee, version = v)) { error =>
         error.message should include("invalid name")
       }
     }

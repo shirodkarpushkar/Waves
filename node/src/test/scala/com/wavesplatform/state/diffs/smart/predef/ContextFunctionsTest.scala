@@ -352,7 +352,7 @@ class ContextFunctionsTest extends PropSpec with PropertyChecks with WithState w
               | let id              = aInfo.id == base58'$assetId'
               | let quantity        = aInfo.quantity == $quantity
               | let decimals        = aInfo.decimals == $decimals
-              | let issuer          = aInfo.issuer.bytes == base58'${issueTx.sender.toAddress}'
+              | let issuer          = aInfo.issuer.bytes == base58'${issueTx.miner.toAddress}'
               | let issuerPublicKey = aInfo.issuerPublicKey == base58'${issueTx.sender}'
               | let scripted        = aInfo.scripted == ${assetScript.nonEmpty}
               | let reissuable      = aInfo.reissuable == $reissuable
@@ -718,7 +718,7 @@ class ContextFunctionsTest extends PropSpec with PropertyChecks with WithState w
                  | incorrectTx          == unit                                                  &&
                  | transferTx.id        == base58'${transferTx.id()}'                      &&
                  | transferTx.amount    == ${transferTx.amount}                                  &&
-                 | transferTx.sender    == Address(base58'${transferTx.sender.toAddress}') &&
+                 | transferTx.sender    == Address(base58'${transferTx.miner.toAddress}') &&
                  | transferTx.recipient == Address(base58'${transferTx.recipient}')
                  |
                """.stripMargin,

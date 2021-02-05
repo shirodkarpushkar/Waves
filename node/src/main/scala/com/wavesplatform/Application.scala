@@ -222,7 +222,7 @@ class Application(val actorSystem: ActorSystem, val settings: WavesSettings, con
 
     // Node start
     // After this point, node actually starts doing something
-    checkGenesis(settings, blockchainUpdater)
+    appenderScheduler.execute(() => checkGenesis(settings, blockchainUpdater, miner))
 
     val network =
       NetworkServer(settings, lastBlockInfo, historyReplier, utxStorage, peerDatabase, allChannels, establishedConnections)
@@ -362,8 +362,6 @@ class Application(val actorSystem: ActorSystem, val settings: WavesSettings, con
       serverBinding.whenTerminated.foreach(_ => httpService.scheduler.shutdown())
       log.info(s"REST API was bound on ${settings.restAPISettings.bindAddress}:${settings.restAPISettings.port}")
     }
-
-    miner.scheduleMining()
 
     for (addr <- settings.networkSettings.declaredAddress if settings.networkSettings.uPnPSettings.enable) {
       upnp.addPort(addr.getPort)

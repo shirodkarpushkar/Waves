@@ -42,9 +42,12 @@ class CustomFeeTransactionSuite extends BaseTransactionSuite {
     notMiner.assertAssetBalance(senderAddress, issuedAssetId, defaultAssetQuantity)
 
     // until `feature-check-blocks-period` blocks have been mined, sponsorship does not occur
-    val unsponsoredId =
-      notMiner.transfer(senderKeyPair, secondAddress, 1, transferFee, Some(issuedAssetId), Some(issuedAssetId)).id
-    nodes.waitForHeightAriseAndTxPresent(unsponsoredId)
+    nodes.waitForHeight(
+      notMiner.waitForTransaction(
+        notMiner.transfer(senderKeyPair, secondAddress, 1, transferFee, Some(issuedAssetId), Some(issuedAssetId)).id
+      ).height + 1
+    )
+
     notMiner.assertBalances(senderAddress, bd1.regular - fees, bd1.effective - fees)
     notMiner.assertBalances(secondAddress, bd2.regular, bd2.effective)
     notMiner.assertBalances(minerAddress, bd3.regular + fees, bd3.effective + fees)

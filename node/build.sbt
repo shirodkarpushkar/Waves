@@ -133,7 +133,7 @@ inConfig(Linux)(
 
 // Variable options are used in different tasks and configs, so we will specify all of them
 val nameFix = Seq(
-  name := "waves",
+  name := "decentralcoin",
   packageName := s"${name.value}${network.value.packageSuffix}",
   normalizedName := s"${name.value}${network.value.packageSuffix}"
 )

@@ -91,11 +91,11 @@ object Explorer extends ScorexLogging {
 
           if (actualTotalBalance != expectedTotalBalance || expectedTotalBalance != byKeyTotalBalance)
             log.error(
-              s"Something wrong, actual total waves balance: $actualTotalBalance," +
-                s" expected total waves balance: $expectedTotalBalance, total waves balance by key: $byKeyTotalBalance"
+              s"Something wrong, actual total decentralcoin balance: $actualTotalBalance," +
+                s" expected total decentralcoin balance: $expectedTotalBalance, total waves balance by key: $byKeyTotalBalance"
             )
           else
-            log.info(s"Correct total waves balance: $actualTotalBalance WAVELETS")
+            log.info(s"Correct total decentralcoin balance: $actualTotalBalance DECENTRALCOIN")
 
         case "DA" =>
           val addressIds = mutable.Seq[(BigInt, Address)]()

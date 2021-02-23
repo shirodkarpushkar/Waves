@@ -34,7 +34,7 @@ case class AssetPair(
 }
 
 object AssetPair {
-  val WavesName = "WAVES"
+  val WavesName = "DECENTRALCOIN"
 
   def assetIdStr(aid: Asset): String = aid match {
     case Waves           => WavesName

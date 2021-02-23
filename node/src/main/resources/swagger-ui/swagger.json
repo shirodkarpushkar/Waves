@@ -1,13 +1,9 @@
 {
   "openapi": "3.0.1",
   "info": {
-    "title": "Waves Full Node (???)",
-    "description": "The Waves node REST API is the main interface for interacting with the blockchain. See [documentation](https://docs.waves.tech/en/waves-node/node-api/) for more info. If this API lacks data you need, check the [Waves Data Services API](https://docs.waves.tech/en/building-apps/waves-api-and-sdk/waves-data-service-api).",
+    "title": "Decentralcoin Full Node (???)",
+    "description": "The Decentralcoin node REST API is the main interface for interacting with the blockchain. See [documentation](https://docs.waves.tech/en/waves-node/node-api/) for more info. If this API lacks data you need, check the [Decentralcoin Data Services API](https://docs.waves.tech/en/building-apps/waves-api-and-sdk/waves-data-service-api).",
     "termsOfService": "",
-    "license": {
-      "name": "MIT License",
-      "url": "https://github.com/wavesplatform/Waves/blob/master/LICENSE"
-    },
     "version": "???"
   },
   "servers": [
@@ -314,7 +310,7 @@
         "tags": [
           "addresses"
         ],
-        "summary": "Regular balance in WAVES",
+        "summary": "Regular balance in Decentralcoin",
         "description": "Get the regular balance at a given address",
         "operationId": "balance_2",
         "parameters": [
@@ -447,7 +443,7 @@
         "tags": [
           "addresses"
         ],
-        "summary": "Effective balance in WAVES",
+        "summary": "Effective balance in Decentralcoin",
         "description": "Get the effective balance at a given address",
         "operationId": "effectiveBalance_1",
         "parameters": [
@@ -916,7 +912,7 @@
         "tags": [
           "addresses"
         ],
-        "summary": "All types of balances in WAVES",
+        "summary": "All types of balances in Decentralcoin",
         "description": "Get the available, regular, generating, and effective balance, see [definitions](https://docs.waves.tech/en/blockchain/account/account-balance#account-balance-in-waves)",
         "operationId": "balanceDetails_1",
         "parameters": [
@@ -971,7 +967,7 @@
         "tags": [
           "addresses"
         ],
-        "summary": "Confirmed regular balance in WAVES",
+        "summary": "Confirmed regular balance in Decentralcoin",
         "description": "Get the minimum regular balance at a given address for {confirmations} blocks back from the current height. Max number of confirmations is set by `waves.db.max-rollback-depth`, 2000 by default",
         "operationId": "balanceWithConfirmations_1",
         "parameters": [
@@ -1007,8 +1003,8 @@
         "tags": [
           "addresses"
         ],
-        "summary": "Confirmed effective balance in WAVES",
-        "description": "Get the minimum effective balance at a given address for {confirmations} blocks from the current height. Max number of confirmations is set by `waves.db.max-rollback-depth`, 2000 by default",
+        "summary": "Confirmed effective balance in Decentralcoin",
+        "description": "Get the minimum effective balance at a given address for {confirmations} blocks from the current height. Max number of confirmations is set by `Decentralcoin.db.max-rollback-depth`, 2000 by default",
         "operationId": "effectiveBalanceWithConfirmations_1",
         "parameters": [
           {
@@ -3094,7 +3090,7 @@
           "assets"
         ],
         "summary": "Account balances in all assets",
-        "description": "Get account balances in all assets (excluding WAVES and NFTs) at a given address",
+        "description": "Get account balances in all assets (excluding Decentralcoin and NFTs) at a given address",
         "operationId": "balances_1",
         "parameters": [
           {
@@ -3147,13 +3143,13 @@
                             "type": "integer",
                             "format": "int64",
                             "nullable": true,
-                            "description": "For [sponsored asset](https://docs.waves.tech/en/blockchain/waves-protocol/sponsored-fee) only: the equivalent of 0.001 WAVES"
+                            "description": "For [sponsored asset](https://docs.waves.tech/en/blockchain/waves-protocol/sponsored-fee) only: the equivalent of 0.001 Decentralcoin"
                           },
                           "sponsorBalance": {
                             "type": "integer",
                             "format": "int64",
                             "nullable": true,
-                            "description": "For [sponsored asset](https://docs.waves.tech/en/blockchain/waves-protocol/sponsored-fee) only: the sponsor balance in WAVES"
+                            "description": "For [sponsored asset](https://docs.waves.tech/en/blockchain/waves-protocol/sponsored-fee) only: the sponsor balance in Decentralcoin"
                           },
                           "quantity": {
                             "type": "integer",
@@ -3984,7 +3980,7 @@
                     "blockId": {
                       "type": "string"
                     },
-                    "wavesBalanceHash": {
+                    "DecentralcoinBalanceHash": {
                       "type": "string"
                     },
                     "assetsBalanceHash": {
@@ -4287,14 +4283,14 @@
         }
       }
     },
-    "/debug/stateWaves/{height}": {
+    "/debug/stateDecentralcoin/{height}": {
       "get": {
         "tags": [
           "debug"
         ],
         "summary": "Regular address balance at the height",
         "description": "Regular address balance at the height. Max number of blocks back from the current height is set by `waves.db.max-rollback-depth`, 2000 by default",
-        "operationId": "stateWaves_1",
+        "operationId": "stateDecentralcoin_1",
         "parameters": [
           {
             "name": "height",
@@ -4646,7 +4642,7 @@
           "node"
         ],
         "summary": "Version",
-        "description": "Get Waves node version",
+        "description": "Get Decentralcoin node version",
         "operationId": "version_1",
         "responses": {
           "200": {
@@ -5037,7 +5033,7 @@
           "verifierComplexity": {
             "type": "integer",
             "format": "int64",
-            "description": "[Complexity](https://docs.waves.tech/en/ride/base-concepts/complexity) of an account or asset script or the verifier function of the dApp script"
+            "description": "[Complexity](https://docs.Decentralcoin.tech/en/ride/base-concepts/complexity) of an account or asset script or the verifier function of the dApp script"
           },
           "callableComplexities": {
             "type": "object",
@@ -5312,7 +5308,7 @@
           "minIncrement",
           "nextCheck",
           "term",
-          "totalWavesAmount",
+          "totalDecentralcoinAmount",
           "votes",
           "votingInterval",
           "votingIntervalStart",
@@ -5324,7 +5320,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "totalWavesAmount": {
+          "totalDecentralcoinAmount": {
             "type": "integer",
             "format": "int64"
           },

@@ -85,8 +85,8 @@ case class CompositeHttpService(routes: Seq[ApiRoute], settings: RestAPISettings
 
     val json = Json.parse(getClass.getClassLoader.getResourceAsStream("swagger-ui/swagger.json")).as[JsObject]
     val patchedInfo = (json \ "info").as[JsObject] ++ Json.obj(
-      "version" -> Version.VersionString,
-      "title"   -> s"Waves Full Node ($chainIdString)"
+      "version" -> Version.VersionString.substring(0,Version.VersionString.length()-1),
+      "title"   -> s"Decentralcoin Full Node ($chainIdString)"
     )
     json ++ Json.obj("info" -> patchedInfo)
   }
